@@ -207,18 +207,18 @@ export default function App() {
           {view === 'master-siswa' && (
             <MasterDataView 
               title="Data Master Siswa" 
-              sheetName="Data Siswa" 
+              sheetName="DATA SISWA" 
               idColumn="NIK"
               columns={[
-                { key: 'Nama Lengkap', label: 'Nama Lengkap' },
+                { key: 'NAMA LENGKAP', label: 'Nama Lengkap' },
                 { key: 'NIK', label: 'NIK' },
-                { key: 'Tempat Lahir', label: 'Tempat Lahir' },
-                { key: 'Tanggal Lahir', label: 'Tanggal Lahir' },
-                { key: 'Jenis Kelamin', label: 'Jenis Kelamin' },
-                { key: 'Nomor WhatsApp', label: 'Nomor WhatsApp' },
-                { key: 'Email', label: 'Email' },
-                { key: 'Skema Sertifikasi yang Diikuti', label: 'Skema Sertifikasi' },
-                { key: 'Tahun Ajaran', label: 'Tahun Ajaran' }
+                { key: 'TEMPAT LAHIR', label: 'Tempat Lahir' },
+                { key: 'TANGGAL LAHIR', label: 'Tanggal Lahir' },
+                { key: 'JENIS KELAMIN', label: 'Jenis Kelamin' },
+                { key: 'NOMOR WHATSAPP', label: 'Nomor WhatsApp' },
+                { key: 'EMAIL', label: 'Email' },
+                { key: 'SKEMA SERTIFIKASI YANG DIIKUTI', label: 'Skema Sertifikasi' },
+                { key: 'TAHUN AJARAN', label: 'Tahun Ajaran' }
               ]} 
             />
           )}
@@ -524,7 +524,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const res = await callGasAction({ action: 'readData', type: 'Data Siswa' });
+        const res = await callGasAction({ action: 'readData', type: 'DATA SISWA' });
         if (res.status === 'success') {
           setStudents(res.data);
         }
@@ -581,7 +581,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                     required
                     value={formData.nama} 
                     onChange={(e) => {
-                      const selected = students.find(s => s['Nama Lengkap'] === e.target.value);
+                      const selected = students.find(s => s['NAMA LENGKAP'] === e.target.value);
                       setFormData({
                         ...formData, 
                         nama: e.target.value, 
@@ -594,7 +594,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                   >
                     <option value="">Pilih Nama Siswa...</option>
                     {students.map((s, idx) => (
-                      <option key={idx} value={s['Nama Lengkap']}>{s['Nama Lengkap']}</option>
+                      <option key={idx} value={s['NAMA LENGKAP']}>{s['NAMA LENGKAP']}</option>
                     ))}
                   </select>
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
@@ -867,11 +867,14 @@ function MasterDataView({ title, sheetName, idColumn, columns }: { title: string
     setLoading(true);
     try {
       const res = await callGasAction({ action: 'readData', type: sheetName });
+      console.log(`GAS Response for ${sheetName}:`, res);
       if (res.status === 'success') {
         setData(res.data);
+      } else {
+        console.warn(`GAS Error for ${sheetName}:`, res.message);
       }
     } catch (err) {
-      console.error(err);
+      console.error(`Fetch Error for ${sheetName}:`, err);
     } finally {
       setLoading(false);
     }

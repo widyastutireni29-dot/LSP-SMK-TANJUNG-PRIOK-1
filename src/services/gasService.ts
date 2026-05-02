@@ -2,7 +2,7 @@
  * Service for interacting with Google Apps Script API
  */
 
-const GAS_URL = (import.meta as any).env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbxqFeN-IOf4cIKSh7eyfRPUmQ998HtiPBQ0xlD6jpyKXVbKn_aWT26wchoahFkwpo1p/exec';
+const GAS_URL = (import.meta as any).env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwGfYEMAzhYSB7WJRa7MJYGZdQtoU26bdBMZjtodd3sLOVtj-jvCnDerixXpKohRkkn/exec';
 
 export async function callGasAction(data: any) {
   try {
