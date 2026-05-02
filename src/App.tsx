@@ -76,11 +76,14 @@ export default function App() {
                 active={view === 'dashboard'} 
                 onClick={() => setView('dashboard')}
                 icon={<LayoutDashboard size={18} />}
-                label="Ringkasan Asesi"
+                label="Ringkasan Utama"
               />
               
-              {user.role === 'ASESI' && (
+              {(user.role === 'ASESI' || user.role === 'ADMIN') && (
                 <>
+                  <div className="pt-4 pb-2 px-3">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Asesi</p>
+                  </div>
                   <NavItem 
                     active={view === 'apl01'} 
                     onClick={() => setView('apl01')}
@@ -96,16 +99,38 @@ export default function App() {
                 </>
               )}
 
-              {user.role === 'ADMIN' && (
+              {(user.role === 'ADMIN') && (
                 <>
+                  <div className="pt-4 pb-2 px-3">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Verifikator</p>
+                  </div>
                   <NavItem 
                     active={view === 'verification'} 
                     onClick={() => setView('verification')}
                     icon={<FileCheck size={18} />}
                     label="Verifikasi Berkas"
                   />
+                </>
+              )}
+
+              {(user.role === 'DIREKTUR' || user.role === 'ADMIN') && (
+                <>
                   <div className="pt-4 pb-2 px-3">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Master Data</p>
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Laporan</p>
+                  </div>
+                  <NavItem 
+                    active={view === 'recap'} 
+                    onClick={() => setView('recap')}
+                    icon={<PieChart size={18} />}
+                    label="Rekapitulasi"
+                  />
+                </>
+              )}
+
+              {user.role === 'ADMIN' && (
+                <>
+                  <div className="pt-4 pb-2 px-3">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Pengaturan Sistem</p>
                   </div>
                   <NavItem 
                     active={view === 'master-siswa'} 
@@ -126,15 +151,6 @@ export default function App() {
                     label="Management User"
                   />
                 </>
-              )}
-
-              {user.role === 'DIREKTUR' && (
-                <NavItem 
-                  active={view === 'recap'} 
-                  onClick={() => setView('recap')}
-                  icon={<PieChart size={18} />}
-                  label="Rekapitulasi"
-                />
               )}
             </nav>
 
@@ -370,12 +386,15 @@ function DashboardView({ user, setView }: { user: User, setView: (v: string) => 
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex justify-between items-center bg-white p-8 rounded-3xl border border-border-subtle shadow-sm mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Status Sertifikasi</h2>
-          <p className="text-sm text-text-muted font-medium mt-1">Skema: Junior Operator Desain Grafis (Level II)</p>
+          <h2 className="text-3xl font-bold text-text-main tracking-tight">Selamat Datang, {user.nama}</h2>
+          <div className="flex items-center gap-2 mt-2">
+             <span className="px-2.5 py-0.5 bg-accent text-white text-[10px] font-black rounded-md uppercase tracking-wider">ROLE: {user.role}</span>
+             <p className="text-sm text-text-muted font-medium italic">Sistem Manajemen LSP SMK Tanjung Priok 1</p>
+          </div>
         </div>
         <div className="text-right">
           <span className="px-4 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-xs font-bold border border-yellow-100 uppercase tracking-wide">
-            Menunggu Verifikasi Asesor
+            {user.role === 'ADMIN' ? 'Full System Access' : 'Status: Aktif'}
           </span>
         </div>
       </header>
