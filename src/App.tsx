@@ -11,7 +11,14 @@ import {
   AlertCircle,
   Menu,
   X,
-  Printer
+  Printer,
+  Users,
+  Settings,
+  Database,
+  Plus,
+  Trash2,
+  Edit,
+  Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getMockData, callGasAction } from './services/gasService';
@@ -90,12 +97,35 @@ export default function App() {
               )}
 
               {user.role === 'ADMIN' && (
-                <NavItem 
-                  active={view === 'verification'} 
-                  onClick={() => setView('verification')}
-                  icon={<FileCheck size={18} />}
-                  label="Verifikasi Berkas"
-                />
+                <>
+                  <NavItem 
+                    active={view === 'verification'} 
+                    onClick={() => setView('verification')}
+                    icon={<FileCheck size={18} />}
+                    label="Verifikasi Berkas"
+                  />
+                  <div className="pt-4 pb-2 px-3">
+                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Master Data</p>
+                  </div>
+                  <NavItem 
+                    active={view === 'master-siswa'} 
+                    onClick={() => setView('master-siswa')}
+                    icon={<Users size={18} />}
+                    label="Data Master Siswa"
+                  />
+                  <NavItem 
+                    active={view === 'master-skema'} 
+                    onClick={() => setView('master-skema')}
+                    icon={<Database size={18} />}
+                    label="Data Unit Skema"
+                  />
+                  <NavItem 
+                    active={view === 'master-users'} 
+                    onClick={() => setView('master-users')}
+                    icon={<Settings size={18} />}
+                    label="Management User"
+                  />
+                </>
               )}
 
               {user.role === 'DIREKTUR' && (
@@ -154,6 +184,46 @@ export default function App() {
               user={user} 
               idReg={lastRegId} 
               onComplete={() => setView('dashboard')} 
+            />
+          )}
+          {view === 'master-siswa' && (
+            <MasterDataView 
+              title="Data Master Siswa" 
+              sheetName="Data Siswa" 
+              idColumn="NIS"
+              columns={[
+                { key: 'NIS', label: 'NIS / UserID' },
+                { key: 'NAMA SISWA', label: 'Nama Siswa' },
+                { key: 'TAHUN AJARAN', label: 'Tahun Ajaran' },
+                { key: 'JURUSAN', label: 'Jurusan' },
+                { key: 'SKEMA', label: 'Skema' }
+              ]} 
+            />
+          )}
+          {view === 'master-skema' && (
+            <MasterDataView 
+              title="Data Unit Kompetensi" 
+              sheetName="Skema1" 
+              idColumn="Kode Unit"
+              columns={[
+                { key: 'Kode Unit', label: 'Kode Unit' },
+                { key: 'Judul Unit Kompetensi', label: 'Judul Unit Kompetensi' }
+              ]} 
+            />
+          )}
+          {view === 'master-users' && (
+            <MasterDataView 
+              title="Akses Pengguna" 
+              sheetName="User_Auth" 
+              idColumn="UserID"
+              columns={[
+                { key: 'UserID', label: 'UserID' },
+                { key: 'Username', label: 'Username' },
+                { key: 'Password_Hash', label: 'Password' },
+                { key: 'Role', label: 'Role' },
+                { key: 'Nama', label: 'Nama' },
+                { key: 'NISN', label: 'NISN (Opsional)' }
+              ]} 
             />
           )}
           {view === 'verification' && <AdminVerification />}
@@ -703,6 +773,240 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
            </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+// --- Admin Master Data View ---
+function MasterDataView({ title, sheetName, idColumn, columns }: { title: string, sheetName: string, idColumn: string, columns: {key: string, label: string}[] }) {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetchData();
+  }, [sheetName]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const res = await callGasAction({ action: 'readData', type: sheetName });
+      if (res.status === 'success') {
+        setData(res.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
+    const payload: any = {};
+    columns.forEach(col => {
+      payload[col.key] = formData.get(col.key);
+    });
+
+    try {
+      await callGasAction({ 
+        action: 'saveData', 
+        sheetName, 
+        idColumn, 
+        payload 
+      });
+      setIsModalOpen(false);
+      setEditingItem(null);
+      fetchData();
+    } catch (err) {
+      alert("Gagal menyimpan data");
+    }
+  };
+
+  const handleDelete = async (id: any) => {
+    if (!confirm("Hapus data ini?")) return;
+    try {
+      await callGasAction({ 
+        action: 'deleteData', 
+        sheetName, 
+        idColumn, 
+        idValue: id 
+      });
+      fetchData();
+    } catch (err) {
+      alert("Gagal menghapus data");
+    }
+  };
+
+  const exportToCSV = () => {
+    if (data.length === 0) return;
+    
+    // Header
+    const headers = columns.map(col => col.label).join(',');
+    
+    // Rows
+    const rows = data.map(item => {
+      return columns.map(col => {
+        const val = item[col.key] || "";
+        return `"${val.toString().replace(/"/g, '""')}"`;
+      }).join(',');
+    }).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `LSP_Export_${sheetName.replace(/ /g, '_')}_${new Date().getTime()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex justify-between items-center bg-white p-8 rounded-3xl border border-border-subtle shadow-sm">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight text-text-main">{title}</h2>
+          <p className="text-sm text-text-muted mt-1 font-medium">Pengelolaan data master di sheet {sheetName}</p>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={exportToCSV}
+            disabled={loading || data.length === 0}
+            className="flex items-center gap-2 bg-white border border-border-subtle text-text-main px-6 py-3 rounded-2xl font-bold text-sm shadow-sm hover:bg-bg-main transition-all disabled:opacity-50"
+          >
+            <Download size={18} />
+            EKSPOR CSV
+          </button>
+          <button 
+            onClick={() => { setEditingItem(null); setIsModalOpen(true); }}
+            className="flex items-center gap-2 bg-accent text-white px-6 py-3 rounded-2xl font-bold text-sm shadow-lg shadow-accent/20 hover:scale-[1.02] transition-all"
+          >
+            <Plus size={18} />
+            TAMBAH DATA
+          </button>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-border-subtle shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-bg-main border-b border-border-subtle text-[11px] font-bold text-text-muted uppercase tracking-widest">
+              <tr>
+                {columns.map(col => (
+                  <th key={col.key} className="px-8 py-5">{col.label}</th>
+                ))}
+                <th className="px-8 py-5 text-right whitespace-nowrap">AKSI</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border-subtle">
+              {loading ? (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-8 py-20 text-center text-text-muted">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-4 border-accent border-t-transparent rounded-full animate-spin"></div>
+                      <p className="font-bold animate-pulse">Memuat Data...</p>
+                    </div>
+                  </td>
+                </tr>
+              ) : data.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length + 1} className="px-8 py-20 text-center text-text-muted font-medium">
+                    Tidak ada data ditemukan.
+                  </td>
+                </tr>
+              ) : (
+                data.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-bg-main/50 transition-colors">
+                    {columns.map(col => (
+                      <td key={col.key} className="px-8 py-5 text-sm text-text-main font-medium">
+                        {item[col.key]}
+                      </td>
+                    ))}
+                    <td className="px-8 py-5 text-right whitespace-nowrap">
+                      <div className="flex justify-end gap-2">
+                        <button 
+                          onClick={() => { setEditingItem(item); setIsModalOpen(true); }}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(item[idColumn])}
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsModalOpen(false)}
+              className="absolute inset-0 bg-text-main/20 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+            >
+              <div className="p-8 border-b border-border-subtle flex justify-between items-center">
+                <h3 className="text-xl font-bold">{editingItem ? 'Edit Data' : 'Tambah Data Baru'}</h3>
+                <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-bg-main rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+              <form onSubmit={handleSave} className="p-8 space-y-6">
+                <div className="grid gap-4">
+                  {columns.map(col => (
+                    <div key={col.key}>
+                      <label className="block text-[11px] font-bold text-text-muted uppercase mb-1.5 ml-1">{col.label}</label>
+                      <input 
+                        name={col.key}
+                        defaultValue={editingItem ? editingItem[col.key] : ''}
+                        required={col.key !== 'NISN'}
+                        readOnly={editingItem && col.key === idColumn}
+                        className={`w-full px-4 py-3 bg-bg-main border border-border-subtle rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent ${editingItem && col.key === idColumn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="flex-1 py-3 border border-border-subtle rounded-xl font-bold text-sm hover:bg-bg-main transition-colors"
+                  >
+                    BATAL
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-3 bg-accent text-white rounded-xl font-bold text-sm shadow-lg shadow-accent/15 transition-all"
+                  >
+                    SIMPAN PERUBAHAN
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

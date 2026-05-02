@@ -107,6 +107,52 @@ function doPost(e) {
       result = { status: 'success', data: items };
     }
 
+    else if (action === 'saveData') {
+      const sheetName = data.sheetName;
+      const sheet = ss.getSheetByName(sheetName);
+      const rows = sheet.getDataRange().getValues();
+      const headers = rows[0];
+      const idColumn = data.idColumn;
+      const idValue = data.payload[idColumn];
+      const idIdx = headers.indexOf(idColumn);
+      
+      let existingRowIdx = -1;
+      if (idIdx !== -1) {
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i][idIdx] == idValue) {
+            existingRowIdx = i + 1;
+            break;
+          }
+        }
+      }
+      
+      const newRow = headers.map(h => data.payload[h] !== undefined ? data.payload[h] : "");
+      
+      if (existingRowIdx !== -1) {
+        sheet.getRange(existingRowIdx, 1, 1, headers.length).setValues([newRow]);
+        result = { status: 'success', message: 'Data Berhasil Diperbarui' };
+      } else {
+        sheet.appendRow(newRow);
+        result = { status: 'success', message: 'Data Berhasil Ditambah' };
+      }
+    }
+
+    else if (action === 'deleteData') {
+      const sheet = ss.getSheetByName(data.sheetName);
+      const rows = sheet.getDataRange().getValues();
+      const idIdx = rows[0].indexOf(data.idColumn);
+      
+      if (idIdx !== -1) {
+        for (let i = 1; i < rows.length; i++) {
+          if (rows[i][idIdx] == data.idValue) {
+            sheet.deleteRow(i + 1);
+            result = { status: 'success' };
+            break;
+          }
+        }
+      }
+    }
+
     else if (action === 'updateStatus') {
       const sheet = ss.getSheetByName('Data_APL01');
       const rows = sheet.getDataRange().getValues();
