@@ -18,7 +18,8 @@ import {
   Plus,
   Trash2,
   Edit,
-  Download
+  Download,
+  ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getMockData, callGasAction } from './services/gasService';
@@ -207,13 +208,17 @@ export default function App() {
             <MasterDataView 
               title="Data Master Siswa" 
               sheetName="Data Siswa" 
-              idColumn="NIS"
+              idColumn="NIK"
               columns={[
-                { key: 'NIS', label: 'NIS / UserID' },
-                { key: 'NAMA SISWA', label: 'Nama Siswa' },
-                { key: 'TAHUN AJARAN', label: 'Tahun Ajaran' },
-                { key: 'JURUSAN', label: 'Jurusan' },
-                { key: 'SKEMA', label: 'Skema' }
+                { key: 'Nama Lengkap', label: 'Nama Lengkap' },
+                { key: 'NIK', label: 'NIK' },
+                { key: 'Tempat Lahir', label: 'Tempat Lahir' },
+                { key: 'Tanggal Lahir', label: 'Tanggal Lahir' },
+                { key: 'Jenis Kelamin', label: 'Jenis Kelamin' },
+                { key: 'Nomor WhatsApp', label: 'Nomor WhatsApp' },
+                { key: 'Email', label: 'Email' },
+                { key: 'Skema Sertifikasi yang Diikuti', label: 'Skema Sertifikasi' },
+                { key: 'Tahun Ajaran', label: 'Tahun Ajaran' }
               ]} 
             />
           )}
@@ -513,6 +518,24 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
     ttdAsesi: user.nama
   });
   const [loading, setLoading] = useState(false);
+  const [students, setStudents] = useState<any[]>([]);
+  const [fetchingStudents, setFetchingStudents] = useState(true);
+
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const res = await callGasAction({ action: 'readData', type: 'Data Siswa' });
+        if (res.status === 'success') {
+          setStudents(res.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat data siswa:", err);
+      } finally {
+        setFetchingStudents(false);
+      }
+    };
+    fetchStudents();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -553,12 +576,32 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
           <div className="space-y-8">
              <div className="form-group">
                 <Label text="Nama Lengkap" />
-                <input 
-                  required
-                  value={formData.nama} 
-                  onChange={(e) => setFormData({...formData, nama: e.target.value, ttdAsesi: e.target.value})}
-                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" 
-                />
+                <div className="relative">
+                  <select 
+                    required
+                    value={formData.nama} 
+                    onChange={(e) => {
+                      const selected = students.find(s => s['Nama Lengkap'] === e.target.value);
+                      setFormData({
+                        ...formData, 
+                        nama: e.target.value, 
+                        ttdAsesi: e.target.value,
+                        nisn: selected ? selected['NIK'] : formData.nisn
+                      });
+                    }}
+                    disabled={fetchingStudents}
+                    className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none appearance-none cursor-pointer" 
+                  >
+                    <option value="">Pilih Nama Siswa...</option>
+                    {students.map((s, idx) => (
+                      <option key={idx} value={s['Nama Lengkap']}>{s['Nama Lengkap']}</option>
+                    ))}
+                  </select>
+                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
+                    <ChevronDown size={18} />
+                  </div>
+                </div>
+                {fetchingStudents && <p className="text-[10px] text-accent font-bold mt-1 animate-pulse">Memuat data master...</p>}
              </div>
              <div className="form-group">
                 <Label text="NISN" />
