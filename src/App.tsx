@@ -33,6 +33,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [view, setView] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [lastRegId, setLastRegId] = useState<string | null>(null);
 
   // Auto logout handling could go here
   
@@ -139,8 +140,22 @@ export default function App() {
 
         <div className="p-10 max-w-6xl mx-auto">
           {view === 'dashboard' && <DashboardView user={user} setView={setView} />}
-          {view === 'apl01' && <AsesiAPL01 user={user} onComplete={() => setView('apl02')} />}
-          {view === 'apl02' && <AsesiAPL02 user={user} onComplete={() => setView('dashboard')} />}
+          {view === 'apl01' && (
+            <AsesiAPL01 
+              user={user} 
+              onComplete={(id: string) => { 
+                setLastRegId(id); 
+                setView('apl02'); 
+              }} 
+            />
+          )}
+          {view === 'apl02' && (
+            <AsesiAPL02 
+              user={user} 
+              idReg={lastRegId} 
+              onComplete={() => setView('dashboard')} 
+            />
+          )}
           {view === 'verification' && <AdminVerification />}
           {view === 'recap' && <DirekturDashboard />}
         </div>
@@ -178,16 +193,19 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
     setLoading(true);
     setError('');
     
-    // Simulate API call to GAS
-    // In production, use callGasAction({ action: 'login', username, password })
-    const res = await getMockData('login', { username, password });
-    
-    if (res.status === 'success') {
-      onLogin(res.user as User);
-    } else {
-      setError(res.message);
+    try {
+      const res = await callGasAction({ action: 'login', username, password });
+      
+      if (res.status === 'success') {
+        onLogin(res.user as User);
+      } else {
+        setError(res.message || 'Login gagal.');
+      }
+    } catch (err) {
+      setError('Terjadi kesalahan koneksi ke server.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -395,7 +413,7 @@ function ActivityItem({ date, text }: { date: string, text: string }) {
 }
 
 // --- Asesi APL-01 Form ---
-function AsesiAPL01({ user, onComplete }: { user: User, onComplete: () => void }) {
+function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: string) => void }) {
   const [formData, setFormData] = useState({
     namaSkema: 'Junior Operator Desain Grafis',
     alamat: '',
@@ -407,9 +425,25 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: () => void }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
-    onComplete();
-    setLoading(false);
+    
+    try {
+      const res = await callGasAction({ 
+        action: 'saveAPL01', 
+        data: {
+          userID: user.userId,
+          tglDaftar: new Date().toISOString(),
+          namaSkema: formData.namaSkema,
+          alamat: formData.alamat,
+          linkBerkas: formData.linkBerkas,
+          ttdAsesi: formData.ttdAsesi
+        }
+      });
+      onComplete(res.idReg);
+    } catch (err) {
+      alert("Gagal menyimpan data APL-01");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -501,7 +535,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: () => void }
 }
 
 // --- Asesi APL-02 View ---
-function AsesiAPL02({ user, onComplete }: { user: User, onComplete: () => void }) {
+function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | null, onComplete: () => void }) {
   const [loading, setLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -528,9 +562,24 @@ function AsesiAPL02({ user, onComplete }: { user: User, onComplete: () => void }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1500));
-    onComplete();
-    setLoading(false);
+    
+    try {
+      const dataAsesmen = units.map((unit, idx) => ({
+        idReg: idReg,
+        userID: user.userId,
+        kodeUnit: unit.kode,
+        judulUnit: unit.judul,
+        jawaban: answers[idx].k ? 'K' : 'BK',
+        linkBukti: answers[idx].link
+      }));
+
+      await callGasAction({ action: 'saveAPL02', data: dataAsesmen });
+      onComplete();
+    } catch (err) {
+      alert("Gagal menyimpan data APL-02");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

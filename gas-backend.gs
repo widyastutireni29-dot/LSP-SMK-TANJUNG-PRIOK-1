@@ -47,7 +47,7 @@ function doPost(e) {
           break;
         }
       }
-      if (result.status === 'error') result.message = 'Kredensial tidak valid di kolom Username/Password_Hash';
+      if (result.status === 'error') result.message = 'Kredensial tidak ditemukan di database (Username/Password_Hash)';
     } 
 
     else if (action === 'saveAPL01') {
