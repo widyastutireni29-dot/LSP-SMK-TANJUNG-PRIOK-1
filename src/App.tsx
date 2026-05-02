@@ -225,11 +225,12 @@ export default function App() {
           {view === 'master-skema' && (
             <MasterDataView 
               title="Data Unit Kompetensi" 
-              sheetName="DATA UNIT" 
+              sheetName="DATA UNIT KOMPETENSI" 
               idColumn="Kode Unit"
               columns={[
                 { key: 'Kode Unit', label: 'Kode Unit' },
-                { key: 'Judul Unit Kompetensi', label: 'Judul Unit Kompetensi' }
+                { key: 'Judul Unit', label: 'Judul Unit' },
+                { key: 'Jenis Unit', label: 'Jenis Unit (Inti/Pilihan)' }
               ]} 
             />
           )}
