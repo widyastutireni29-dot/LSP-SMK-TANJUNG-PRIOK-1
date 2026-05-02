@@ -286,7 +286,7 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
     setError('');
     
     try {
-      const res = await callGasAction({ action: 'login', type: 'User_Auth', username, password });
+      const res = await callGasAction({ action: 'login', username, password });
       
       if (res.status === 'success') {
         onLogin(res.user as User);
@@ -544,18 +544,17 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
     try {
       const res = await callGasAction({ 
         action: 'saveAPL01', 
-        data: {
-          userID: user.userId,
-          tglDaftar: new Date().toISOString(),
-          namaSkema: formData.namaSkema,
-          alamat: formData.alamat,
-          linkBerkas: formData.linkBerkas,
-          ttdAsesi: formData.ttdAsesi
-        }
+        userId: user.userId,
+        namaSkema: formData.namaSkema,
+        alamat: formData.alamat,
+        linkBerkas: formData.linkBerkas,
+        ttdAsesi: formData.ttdAsesi
       });
-      onComplete(res.idReg);
+      if (res.status === 'success') {
+        onComplete(res.idReg);
+      }
     } catch (err) {
-      alert("Gagal menyimpan data APL-01");
+      alert("Gagal mengirim permohonan");
     } finally {
       setLoading(false);
     }
@@ -710,16 +709,18 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
     setLoading(true);
     
     try {
-      const dataAsesmen = units.map((unit, idx) => ({
-        idReg: idReg,
-        userID: user.userId,
+      const unitPayload = units.map((unit, idx) => ({
         kodeUnit: unit.kode,
         judulUnit: unit.judul,
         jawaban: answers[idx].k ? 'K' : 'BK',
         linkBukti: answers[idx].link
       }));
 
-      await callGasAction({ action: 'saveAPL02', data: dataAsesmen });
+      await callGasAction({ 
+        action: 'saveAPL02', 
+        idReg: idReg,
+        units: unitPayload 
+      });
       onComplete();
     } catch (err) {
       alert("Gagal menyimpan data APL-02");

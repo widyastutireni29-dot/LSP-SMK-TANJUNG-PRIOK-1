@@ -2,7 +2,7 @@
  * Service for interacting with Google Apps Script API
  */
 
-const GAS_URL = (import.meta as any).env.VITE_GAS_URL || 'https://script.google.com/macros/s/AKfycbwGfYEMAzhYSB7WJRa7MJYGZdQtoU26bdBMZjtodd3sLOVtj-jvCnDerixXpKohRkkn/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwGfYEMAzhYSB7WJRa7MJYGZdQtoU26bdBMZjtodd3sLOVtj-jvCnDerixXpKohRkkn/exec';
 
 export async function callGasAction(data: any) {
   try {
@@ -18,12 +18,14 @@ export async function callGasAction(data: any) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    return await response.json();
+    const result = await response.json();
+    console.log("GAS Result:", result);
+    return result;
   } catch (error) {
     console.error('GAS Service Error:', error);
     return { 
       status: 'error', 
-      message: error instanceof Error ? error.message : 'Terjadi kesalahan koneksi ke server.' 
+      message: 'Gagal terhubung ke server. Pastikan App Script sudah di-deploy dengan benar.' 
     };
   }
 }
