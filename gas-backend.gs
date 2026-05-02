@@ -17,25 +17,37 @@ function doPost(e) {
     if (action === 'login') {
       const sheet = ss.getSheetByName('User_Auth');
       const rows = sheet.getDataRange().getValues();
+      const headers = rows[0];
+      
+      const idx = {
+        userId: headers.indexOf('UserID'),
+        username: headers.indexOf('Username'),
+        password: headers.indexOf('Password_Hash'),
+        role: headers.indexOf('Role'),
+        nama: headers.indexOf('Nama'),
+        nisn: headers.indexOf('NISN')
+      };
+
       const username = data.username;
       const password = data.password;
       
       for (var i = 1; i < rows.length; i++) {
-        if (rows[i][1] === username && rows[i][2] === password) {
+        const row = rows[i];
+        if (row[idx.username] == username && row[idx.password] == password) {
           result = { 
             status: 'success', 
             user: {
-              userId: rows[i][0],
-              username: rows[i][1],
-              role: rows[i][3],
-              nama: rows[i][4],
-              nisn: rows[i][5]
+              userId: row[idx.userId],
+              username: row[idx.username],
+              role: row[idx.role],
+              nama: row[idx.nama],
+              nisn: row[idx.nisn]
             }
           };
           break;
         }
       }
-      if (result.status === 'error') result.message = 'Username atau Password salah';
+      if (result.status === 'error') result.message = 'Kredensial tidak valid di kolom Username/Password_Hash';
     } 
 
     else if (action === 'saveAPL01') {

@@ -46,16 +46,42 @@ export async function callGasAction(data: any) {
 // Helper for dev/mocking if GAS is not yet deployed
 export function getMockData(action: string, params: any = {}) {
   if (action === 'login') {
+    // Simulasi data dari kolom Username dan Password_Hash
     if (params.username === 'asesi' && params.password === '123') {
-      return { status: 'success', user: { userId: 'US-001', username: 'asesi', role: 'ASESI', nama: 'Budi Santoso', nisn: '12345678' } };
+      return { 
+        status: 'success', 
+        user: { 
+          userId: 'US-001', 
+          username: 'asesi', 
+          role: 'ASESI', 
+          nama: 'Budi Santoso', 
+          nisn: '12345678' 
+        } 
+      };
     }
     if (params.username === 'admin' && params.password === '123') {
-      return { status: 'success', user: { userId: 'AD-001', username: 'admin', role: 'ADMIN', nama: 'Admin LSP' } };
+      return { 
+        status: 'success', 
+        user: { 
+          userId: 'AD-001', 
+          username: 'admin', 
+          role: 'ADMIN', 
+          nama: 'Admin LSP SMK TP1' 
+        } 
+      };
     }
     if (params.username === 'direktur' && params.password === '123') {
-      return { status: 'success', user: { userId: 'DR-001', username: 'direktur', role: 'DIREKTUR', nama: 'Kepala SMK' } };
+      return { 
+        status: 'success', 
+        user: { 
+          userId: 'DR-001', 
+          username: 'direktur', 
+          role: 'DIREKTUR', 
+          nama: 'Direktur LSP SMK TP1' 
+        } 
+      };
     }
-    return { status: 'error', message: 'Username atau password salah (Mock)' };
+    return { status: 'error', message: 'Username atau Password_Hash salah di database' };
   }
-  return { status: 'success', message: 'Mock action successful' };
+  return { status: 'success', message: 'Data mock berhasil dimuat' };
 }
