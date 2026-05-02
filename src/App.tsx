@@ -210,22 +210,22 @@ export default function App() {
               sheetName="DATA SISWA" 
               idColumn="NIK"
               columns={[
-                { key: 'NAMA LENGKAP', label: 'Nama Lengkap' },
+                { key: 'Nama Lengkap', label: 'Nama Lengkap' },
                 { key: 'NIK', label: 'NIK' },
-                { key: 'TEMPAT LAHIR', label: 'Tempat Lahir' },
-                { key: 'TANGGAL LAHIR', label: 'Tanggal Lahir' },
-                { key: 'JENIS KELAMIN', label: 'Jenis Kelamin' },
-                { key: 'NOMOR WHATSAPP', label: 'Nomor WhatsApp' },
-                { key: 'EMAIL', label: 'Email' },
-                { key: 'SKEMA SERTIFIKASI YANG DIIKUTI', label: 'Skema Sertifikasi' },
-                { key: 'TAHUN AJARAN', label: 'Tahun Ajaran' }
+                { key: 'Tempat Lahir', label: 'Tempat Lahir' },
+                { key: 'Tanggal Lahir', label: 'Tanggal Lahir' },
+                { key: 'Jenis Kelamin', label: 'Jenis Kelamin' },
+                { key: 'Nomor WhatsApp', label: 'Nomor WhatsApp' },
+                { key: 'Email', label: 'Email' },
+                { key: 'Skema Sertifikasi yang Diikuti', label: 'Skema Sertifikasi' },
+                { key: 'Tahun Ajaran', label: 'Tahun Ajaran' }
               ]} 
             />
           )}
           {view === 'master-skema' && (
             <MasterDataView 
               title="Data Unit Kompetensi" 
-              sheetName="Skema1" 
+              sheetName="DATA UNIT" 
               idColumn="Kode Unit"
               columns={[
                 { key: 'Kode Unit', label: 'Kode Unit' },
@@ -286,7 +286,7 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
     setError('');
     
     try {
-      const res = await callGasAction({ action: 'login', username, password });
+      const res = await callGasAction({ action: 'login', type: 'User_Auth', username, password });
       
       if (res.status === 'success') {
         onLogin(res.user as User);
@@ -581,7 +581,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                     required
                     value={formData.nama} 
                     onChange={(e) => {
-                      const selected = students.find(s => s['NAMA LENGKAP'] === e.target.value);
+                      const selected = students.find(s => s['Nama Lengkap'] === e.target.value);
                       setFormData({
                         ...formData, 
                         nama: e.target.value, 
@@ -594,7 +594,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                   >
                     <option value="">Pilih Nama Siswa...</option>
                     {students.map((s, idx) => (
-                      <option key={idx} value={s['NAMA LENGKAP']}>{s['NAMA LENGKAP']}</option>
+                      <option key={idx} value={s['Nama Lengkap']}>{s['Nama Lengkap']}</option>
                     ))}
                   </select>
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
