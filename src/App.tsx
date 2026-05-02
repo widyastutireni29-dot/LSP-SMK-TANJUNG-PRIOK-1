@@ -83,7 +83,7 @@ export default function App() {
               {(user?.role?.toUpperCase() === 'ASESI' || user?.role?.toUpperCase() === 'ADMIN') && (
                 <>
                   <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-bg-main/50 rounded-lg mx-2">
-                    <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Pendaftaran</p>
+                    <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Pendaftaran Siswa</p>
                   </div>
                   <NavItem 
                     active={view === 'apl01'} 
@@ -582,11 +582,12 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                     value={formData.nama} 
                     onChange={(e) => {
                       const selected = students.find(s => s['Nama Lengkap'] === e.target.value);
+                      console.log("Selected Student:", selected);
                       setFormData({
                         ...formData, 
                         nama: e.target.value, 
                         ttdAsesi: e.target.value,
-                        nisn: selected ? selected['NIK'] : formData.nisn
+                        nisn: selected ? (selected['NIK'] || selected['NISN'] || '-') : formData.nisn
                       });
                     }}
                     disabled={fetchingStudents}
