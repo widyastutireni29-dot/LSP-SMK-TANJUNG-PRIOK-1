@@ -71,7 +71,7 @@ export default function App() {
               </h1>
             </div>
 
-            <nav className="flex-1 px-3 py-6 space-y-1">
+            <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto custom-scrollbar shadow-inner shadow-black/5">
               <NavItem 
                 active={view === 'dashboard'} 
                 onClick={() => setView('dashboard')}
@@ -79,58 +79,58 @@ export default function App() {
                 label="Ringkasan Utama"
               />
               
-              {(user.role === 'ASESI' || user.role === 'ADMIN') && (
+              {(user?.role?.toUpperCase() === 'ASESI' || user?.role?.toUpperCase() === 'ADMIN') && (
                 <>
-                  <div className="pt-4 pb-2 px-3">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Asesi</p>
+                  <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-bg-main/50 rounded-lg mx-2">
+                    <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Pendaftaran</p>
                   </div>
                   <NavItem 
                     active={view === 'apl01'} 
                     onClick={() => setView('apl01')}
                     icon={<UserCircle size={18} />}
-                    label="APL-01 Data Diri"
+                    label="APL-01: Data Diri"
                   />
                   <NavItem 
                     active={view === 'apl02'} 
                     onClick={() => setView('apl02')}
                     icon={<ClipboardList size={18} />}
-                    label="APL-02 Ceklis Mandiri"
+                    label="APL-02: Asesmen"
                   />
                 </>
               )}
 
-              {(user.role === 'ADMIN') && (
+              {user?.role?.toUpperCase() === 'ADMIN' && (
                 <>
-                  <div className="pt-4 pb-2 px-3">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Verifikator</p>
+                  <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-emerald-50 rounded-lg mx-2 mt-4">
+                    <p className="text-[9px] font-black text-emerald-600 uppercase tracking-[0.2em]">Verifikasi</p>
                   </div>
                   <NavItem 
                     active={view === 'verification'} 
                     onClick={() => setView('verification')}
                     icon={<FileCheck size={18} />}
-                    label="Verifikasi Berkas"
+                    label="Antrean Sertifikasi"
                   />
                 </>
               )}
 
-              {(user.role === 'DIREKTUR' || user.role === 'ADMIN') && (
+              {(user?.role?.toUpperCase() === 'DIREKTUR' || user?.role?.toUpperCase() === 'ADMIN') && (
                 <>
-                  <div className="pt-4 pb-2 px-3">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Menu Laporan</p>
+                  <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-blue-50 rounded-lg mx-2 mt-4">
+                    <p className="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em]">Sistem Laporan</p>
                   </div>
                   <NavItem 
                     active={view === 'recap'} 
                     onClick={() => setView('recap')}
                     icon={<PieChart size={18} />}
-                    label="Rekapitulasi"
+                    label="Rekapitulasi LSP"
                   />
                 </>
               )}
 
-              {user.role === 'ADMIN' && (
+              {user?.role?.toUpperCase() === 'ADMIN' && (
                 <>
-                  <div className="pt-4 pb-2 px-3">
-                    <p className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Pengaturan Sistem</p>
+                  <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-slate-100 rounded-lg mx-2 mt-4">
+                    <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.2em]">Administrator</p>
                   </div>
                   <NavItem 
                     active={view === 'master-siswa'} 
@@ -142,13 +142,13 @@ export default function App() {
                     active={view === 'master-skema'} 
                     onClick={() => setView('master-skema')}
                     icon={<Database size={18} />}
-                    label="Data Unit Skema"
+                    label="Data Unit Kompetensi"
                   />
                   <NavItem 
                     active={view === 'master-users'} 
                     onClick={() => setView('master-users')}
                     icon={<Settings size={18} />}
-                    label="Management User"
+                    label="Kelola Pengguna"
                   />
                 </>
               )}
@@ -176,12 +176,13 @@ export default function App() {
       </AnimatePresence>
 
       {/* Main Content */}
-      <main className="flex-1 h-full overflow-y-auto relative">
+      <main className="flex-1 h-full overflow-y-auto relative bg-bg-main">
+        {/* Mobile Toggle Button */}
         <button 
           onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="lg:hidden absolute top-4 left-4 z-50 p-2 bg-white rounded-md shadow-sm border border-border-subtle"
+          className="lg:hidden fixed top-6 left-6 z-[60] p-3 bg-white rounded-2xl shadow-xl shadow-black/5 border border-border-subtle text-accent active:scale-95 transition-all"
         >
-          {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
 
         <div className="p-10 max-w-6xl mx-auto">
@@ -504,6 +505,8 @@ function ActivityItem({ date, text }: { date: string, text: string }) {
 // --- Asesi APL-01 Form ---
 function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: string) => void }) {
   const [formData, setFormData] = useState({
+    nama: user.nama,
+    nisn: user.nisn || '',
     namaSkema: 'Junior Operator Desain Grafis',
     alamat: '',
     linkBerkas: '',
@@ -550,11 +553,21 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
           <div className="space-y-8">
              <div className="form-group">
                 <Label text="Nama Lengkap" />
-                <input readOnly value={user.nama} className="w-full px-5 py-4 bg-bg-main border border-border-subtle rounded-2xl text-text-muted text-sm font-semibold cursor-not-allowed" />
+                <input 
+                  required
+                  value={formData.nama} 
+                  onChange={(e) => setFormData({...formData, nama: e.target.value, ttdAsesi: e.target.value})}
+                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" 
+                />
              </div>
              <div className="form-group">
                 <Label text="NISN" />
-                <input readOnly value={user.nisn} className="w-full px-5 py-4 bg-bg-main border border-border-subtle rounded-2xl text-text-muted text-sm font-semibold cursor-not-allowed" />
+                <input 
+                  required
+                  value={formData.nisn} 
+                  onChange={(e) => setFormData({...formData, nisn: e.target.value})}
+                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" 
+                />
              </div>
              <div className="form-group">
                 <Label text="Skema Sertifikasi" />
@@ -564,7 +577,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                   className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none appearance-none"
                 >
                    <option>Junior Operator Desain Grafis</option>
-                   <option>Teknik Komputer & Jaringan</option>
+                   <option>Junior Content Creator</option>
                 </select>
              </div>
           </div>
