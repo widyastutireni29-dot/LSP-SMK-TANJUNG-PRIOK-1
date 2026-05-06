@@ -19,9 +19,13 @@ import {
   Trash2,
   Edit,
   Download,
-  ChevronDown
+  ChevronDown,
+  ExternalLink,
+  FileUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { getMockData, callGasAction } from './services/gasService';
 import { verifyDesignPortfolio } from './services/aiService';
 
@@ -401,26 +405,93 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
 function DashboardView({ user, setView }: { user: User, setView: (v: string) => void }) {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedScheme, setSelectedScheme] = useState<string | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+  const [signedFiles, setSignedFiles] = useState({ apl01: '', apl02: '' });
+  const [submitting, setSubmitting] = useState(false);
+  const [zipping, setZipping] = useState(false);
 
   useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const res = await callGasAction({ 
-          action: 'readData', 
-          type: 'Data_APL01', 
-          userId: user?.userId 
-        });
-        if (res.status === 'success') {
-          setSubmissions(res.data);
-        }
-      } catch (err) {
-        console.error("Gagal memuat status:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchStatus();
   }, [user]);
+
+  const fetchStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await callGasAction({ 
+        action: 'readData', 
+        type: 'Data_APL01', 
+        userId: user?.userId 
+      });
+      if (res.status === 'success') {
+        setSubmissions(res.data);
+      }
+    } catch (err) {
+      console.error("Gagal memuat status:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUploadSigned = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await callGasAction({ 
+        action: 'saveAPL01', 
+        userId: user?.userId || 'unknown',
+        namaSkema: selectedScheme || 'Sertifikasi',
+        linkBerkas: `${signedFiles.apl01} | ${signedFiles.apl02}`,
+        status: 'Waiting Validation',
+        ttdAsesi: user?.nama || 'Signed'
+      });
+      if (res.status === 'success') {
+        alert("Berkas berhasil diupload. Status: Menunggu Validasi Admin.");
+        fetchStatus();
+        setShowUpload(false);
+        setSelectedScheme(null);
+      }
+    } catch (err) {
+      alert("Gagal mengirim berkas.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDownloadZip = async () => {
+    if (!latestSub || !latestSub[5]) return;
+    
+    const links = latestSub[5].split(' | ');
+    if (links.length < 2) return;
+
+    setZipping(true);
+    try {
+      const zip = new JSZip();
+      const folder = zip.folder("Berkas_Signed_LSP");
+      
+      const filePromises = links.map(async (link: string, idx: number) => {
+        try {
+          const response = await fetch(link);
+          const blob = await response.blob();
+          const fileName = idx === 0 ? "APL-01_Signed.pdf" : "APL-02_Signed.pdf";
+          folder?.file(fileName, blob);
+        } catch (e) {
+          console.warn(`Gagal mendownload ${link} via fetch (CORS?). Falling back to opening link directly.`);
+          window.open(link, '_blank');
+        }
+      });
+
+      await Promise.all(filePromises);
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `Berkas_Sertifikasi_${user?.nama || 'Asesi'}.zip`);
+    } catch (err) {
+      console.error("Gagal membuat ZIP:", err);
+      alert("Terjadi kesalahan saat membuat ZIP. Pastikan koneksi stabil.");
+    } finally {
+      setZipping(false);
+    }
+  };
 
   const latestSub = submissions.length > 0 ? submissions[submissions.length - 1] : null;
 
@@ -428,81 +499,224 @@ function DashboardView({ user, setView }: { user: User, setView: (v: string) => 
     return (
       <div className="bg-white p-12 rounded-3xl shadow-sm border border-border-subtle flex flex-col items-center justify-center min-h-[400px]">
         <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p className="font-bold text-text-muted animate-pulse">MENYINGKRONKAN STATUS...</p>
+        <p className="font-bold text-text-muted animate-pulse font-mono tracking-widest text-[10px]">MENYINGKRONKAN DATABASE LSP...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header className="flex justify-between items-center bg-white p-8 rounded-3xl border border-border-subtle shadow-sm mb-6">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-10 rounded-3xl border border-border-subtle shadow-sm mb-6 gap-6">
         <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Selamat Datang, {user?.nama || 'Pengguna'}</h2>
-          <div className="flex items-center gap-2 mt-2">
-             <span className="px-2.5 py-0.5 bg-accent text-white text-[10px] font-black rounded-md uppercase tracking-wider">ROLE: {user?.role || 'GUEST'}</span>
-             <p className="text-sm text-text-muted font-medium italic">Sistem Manajemen LSP SMK Tanjung Priok 1</p>
+          <h2 className="text-4xl font-black text-text-main tracking-tighter">Halo, {user?.nama || 'Pengguna'}</h2>
+          <div className="flex items-center gap-2 mt-3">
+             <span className="px-3 py-1 bg-accent text-white text-[10px] font-black rounded-lg uppercase tracking-widest">Siswa/Asesi</span>
+             <p className="text-sm text-text-muted font-bold italic">Sertifikasi & Manajemen Kompetensi</p>
           </div>
         </div>
-        <div className="text-right">
-          <span className={`px-4 py-1.5 rounded-full text-xs font-bold border uppercase tracking-wide ${
+        <div className="text-right w-full md:w-auto">
+          <div className={`px-6 py-3 rounded-2xl text-xs font-black border uppercase tracking-widest shadow-sm ${
             user?.role === 'ADMIN' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
           }`}>
-            {user?.role === 'ADMIN' ? 'Full System Access' : 'Siswa Aktif'}
-          </span>
+            {user?.role === 'ADMIN' ? 'Full Control' : 'Status: Aktif'}
+          </div>
         </div>
       </header>
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-8">
         <StatCard 
-          icon={<ShieldCheck className="text-accent" size={24} />}
-          label="Pengajuan APL-01"
-          value={latestSub ? latestSub[6] || latestSub['Status'] : 'Belum Mulai'}
+          icon={<ShieldCheck className="text-accent" size={32} />}
+          label="Status Pendaftaran"
+          value={latestSub ? (latestSub[6] || 'Diproses') : 'Belum Ada'}
           status={latestSub ? (latestSub[6] === 'Verified' ? 'success' : 'pending') : 'none'}
         />
         <StatCard 
-          icon={<ClipboardList className="text-emerald-500" size={24} />}
-          label="Proses Sertifikasi"
-          value={latestSub ? (latestSub[6] === 'Verified' ? 'Asesmen Mandiri' : 'Menunggu Approval') : 'Idle'}
-          status="complete"
+          icon={<ClipboardList className="text-emerald-500" size={32} />}
+          label="Skema Aktif"
+          value={latestSub ? latestSub[3] : 'N/A'}
+          status={latestSub ? 'complete' : 'none'}
         />
         <StatCard 
-          icon={<Download className="text-indigo-500" size={24} />}
-          label="Sertifikat / Bukti"
-          value={latestSub?.[6] === 'Verified' ? 'Download APL' : 'N/A'}
+          icon={<Download className="text-indigo-500" size={32} />}
+          label="Hasil Sertifikasi"
+          value={latestSub?.[6] === 'Verified' ? 'Kompeten' : (latestSub?.[5]?.includes('|') ? 'Signed' : 'Waiting')}
           status={latestSub?.[6] === 'Verified' ? 'ai' : 'none'}
-          subValue={latestSub?.[6] === 'Verified' ? "Klik untuk Unduh" : ""}
-          onClick={() => latestSub?.[6] === 'Verified' && window.print()}
+          subValue={latestSub?.[5]?.includes('|') ? (zipping ? "Processing..." : "Unduh ZIP") : "Unduh Sertifikat"}
+          onClick={latestSub?.[5]?.includes('|') ? handleDownloadZip : undefined}
         />
       </div>
 
-      <div className="grid lg:grid-cols-1 gap-8">
-        <section className="bg-white p-10 rounded-3xl border border-border-subtle shadow-sm overflow-hidden relative">
-           <div className="flex items-center justify-between mb-12">
-              <h3 className="text-xl font-bold text-text-main tracking-tight">Tracking Progress Sertifikasi</h3>
-              <div className="flex items-center gap-2 px-3 py-1 bg-accent/5 text-accent rounded-lg text-[10px] font-bold border border-accent/10">
-                 REAL-TIME UPDATE
+      <div className="grid lg:grid-cols-1 gap-10">
+        <section className="bg-white p-12 rounded-[40px] border border-border-subtle shadow-xl shadow-black/5 overflow-hidden relative">
+           <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-16 gap-6">
+              <div>
+                <h3 className="text-2xl font-black text-text-main tracking-tight">Alur Sertifikasi Mandiri</h3>
+                <p className="text-sm text-text-muted mt-2 font-medium">Ikuti langkah-langkah di bawah untuk pengajuan sertifikasi.</p>
+              </div>
+              <div className="flex items-center gap-3 px-4 py-2 bg-accent/5 text-accent rounded-2xl text-[11px] font-black border border-accent/10 tracking-widest">
+                 <div className="w-2 h-2 rounded-full bg-accent animate-ping"></div>
+                 MONITORING SYSTEM ON
               </div>
            </div>
 
+           {!selectedScheme && !latestSub && (
+             <div className="grid md:grid-cols-2 gap-8 mb-16">
+                <button 
+                  onClick={() => setSelectedScheme('Junior Operator Desain Grafis')}
+                  className="group p-10 bg-gradient-to-br from-white to-bg-main border-2 border-border-subtle rounded-[32px] hover:border-accent hover:shadow-2xl hover:shadow-accent/10 transition-all text-left relative overflow-hidden"
+                >
+                   <div className="absolute top-0 right-0 p-8 text-accent/5 group-hover:text-accent/10 transition-colors">
+                      <ShieldCheck size={120} />
+                   </div>
+                   <div className="w-14 h-14 bg-accent/10 text-accent rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <Edit size={24} />
+                   </div>
+                   <h4 className="text-xl font-black text-text-main tracking-tight">Junior Operator <br /> Desain Grafis</h4>
+                   <p className="text-xs text-text-muted mt-3 font-bold uppercase tracking-wider">Mulai Sertifikasi</p>
+                </button>
+
+                <button 
+                  onClick={() => setSelectedScheme('Junior Content Creator')}
+                  className="group p-10 bg-gradient-to-br from-white to-bg-main border-2 border-border-subtle rounded-[32px] hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all text-left relative overflow-hidden"
+                >
+                   <div className="absolute top-0 right-0 p-8 text-emerald-500/5 group-hover:text-emerald-500/10 transition-colors">
+                      <ShieldCheck size={120} />
+                   </div>
+                   <div className="w-14 h-14 bg-emerald-500/10 text-emerald-600 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                      <PieChart size={24} />
+                   </div>
+                   <h4 className="text-xl font-black text-text-main tracking-tight">Junior <br /> Content Creator</h4>
+                   <p className="text-xs text-text-muted mt-3 font-bold uppercase tracking-wider">Mulai Sertifikasi</p>
+                </button>
+             </div>
+           )}
+
+           {selectedScheme && (
+             <div className="mb-16 space-y-10 animate-in slide-in-from-top-4 duration-500">
+                <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <button onClick={() => setSelectedScheme(null)} className="p-3 bg-bg-main rounded-xl text-text-muted hover:text-accent transition-colors">
+                         <X size={20} />
+                      </button>
+                      <h4 className="text-xl font-black text-text-main">{selectedScheme}</h4>
+                   </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-8">
+                   <div className="bg-white p-8 rounded-3xl border border-border-subtle shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-black text-text-main uppercase tracking-widest text-[10px] mb-4 text-accent">Tahap 1: Formulir APL-01</h5>
+                        <p className="text-sm font-bold text-text-main leading-relaxed">Isi formulir pendaftaran asesi melalui Google Form resmi.</p>
+                      </div>
+                      <a 
+                        href={selectedScheme.includes('Desain') ? "https://forms.gle/wZAe98RTcKJLwuP6A" : "https://forms.gle/wZAe98RTcKJLwuP6A"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-6 flex items-center justify-center gap-3 w-full py-4 bg-accent text-white rounded-2xl font-black text-xs tracking-widest hover:shadow-xl hover:shadow-accent/20 transition-all uppercase"
+                      >
+                         Buka APL-01 <ExternalLink size={14} />
+                      </a>
+                   </div>
+
+                   <div className="bg-white p-8 rounded-3xl border border-border-subtle shadow-sm flex flex-col justify-between">
+                      <div>
+                        <h5 className="font-black text-emerald-600 uppercase tracking-widest text-[10px] mb-4">Tahap 2: Formulir APL-02</h5>
+                        <p className="text-sm font-bold text-text-main leading-relaxed">Lengkapi asesmen mandiri (APL-02) sesuai unit kompetensi.</p>
+                      </div>
+                      <a 
+                        href={selectedScheme.includes('Desain') ? "https://forms.gle/Q9pH9w92VRYca9hd8" : "https://forms.gle/Q9pH9w92VRYca9hd8"} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="mt-6 flex items-center justify-center gap-3 w-full py-4 bg-emerald-500 text-white rounded-2xl font-black text-xs tracking-widest hover:shadow-xl hover:shadow-emerald-500/20 transition-all uppercase"
+                      >
+                         Buka APL-02 <ExternalLink size={14} />
+                      </a>
+                   </div>
+                </div>
+
+                <div className="p-8 bg-indigo-50 border border-indigo-100 rounded-3xl">
+                   <div className="flex items-center gap-4 mb-4">
+                      <div className="p-3 bg-indigo-500 text-white rounded-xl">
+                         <FileUp size={20} />
+                      </div>
+                      <h5 className="font-black text-indigo-900 text-lg">Upload Berkas Ter-Tanda Tangan</h5>
+                   </div>
+                   <p className="text-sm text-indigo-800 font-medium mb-8">Setelah mengisi Google Form dan mendapatkan file PDF yang sudah ditandatangani oleh Asesi & Admin, mohon upload link berkasnya di sini untuk validasi akhir.</p>
+                   
+                   <form onSubmit={handleUploadSigned} className="space-y-6">
+                      <div className="grid md:grid-cols-2 gap-6">
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-indigo-900 uppercase">Link Signed APL-01</label>
+                            <input 
+                              required
+                              type="url"
+                              placeholder="https://drive.google.com/..."
+                              value={signedFiles.apl01}
+                              onChange={(e) => setSignedFiles({...signedFiles, apl01: e.target.value})}
+                              className="w-full px-5 py-4 bg-white border border-indigo-200 rounded-2xl text-xs font-mono focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                            />
+                         </div>
+                         <div className="space-y-2">
+                            <label className="text-[10px] font-black text-indigo-900 uppercase">Link Signed APL-02</label>
+                            <input 
+                              required
+                              type="url"
+                              placeholder="https://drive.google.com/..."
+                              value={signedFiles.apl02}
+                              onChange={(e) => setSignedFiles({...signedFiles, apl02: e.target.value})}
+                              className="w-full px-5 py-4 bg-white border border-indigo-200 rounded-2xl text-xs font-mono focus:ring-4 focus:ring-indigo-500/10 outline-none"
+                            />
+                         </div>
+                      </div>
+                      <button 
+                        type="submit"
+                        disabled={submitting}
+                        className="w-full py-5 bg-indigo-600 text-white rounded-2xl font-black tracking-[0.2em] text-xs hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-600/20 disabled:opacity-50"
+                      >
+                         {submitting ? 'MENYIMPAN DATA...' : 'SUBMIT BERKAS & VALIDASI'}
+                      </button>
+                   </form>
+                </div>
+             </div>
+           )}
+
            <div className="relative pb-10">
-              <div className="absolute top-5 left-8 right-8 h-1 bg-bg-main"></div>
+              <div className="absolute top-5 left-12 right-12 h-1 bg-bg-main border-x border-border-subtle"></div>
               <div className="relative flex justify-between">
-                 <ProgressStep active={!!latestSub} done={!!latestSub} label="Pendaftaran" sub="APL-01 Submitted" />
-                 <ProgressStep active={latestSub?.[6] === 'Verified'} done={latestSub?.[6] === 'Verified'} label="Verifikasi" sub="Approved by Admin" />
-                 <ProgressStep active={latestSub?.[6] === 'Verified'} done={false} label="Asesmen Mandiri" sub="Isi Form APL-02" />
-                 <ProgressStep active={false} done={false} label="Keluaran Sertifikat" sub="Pending Result" />
+                 <ProgressStep active={!!latestSub} done={!!latestSub} label="Pendaftaran" sub="APL-01 / APL-02" />
+                 <ProgressStep active={latestSub?.[6] === 'Waiting Validation'} done={latestSub?.[6] === 'Verified'} label="Verifikasi" sub="Admin Check" />
+                 <ProgressStep active={false} done={latestSub?.[6] === 'Verified'} label="Uji Kompetensi" sub="Penilaian Asesor" />
+                 <ProgressStep active={false} done={latestSub?.[6] === 'Verified'} label="Selesai" sub="Sertifikat Terbit" />
               </div>
            </div>
            
-           {!latestSub && (
-             <div className="mt-8 p-12 text-center border-2 border-dashed border-border-subtle rounded-3xl bg-bg-main/30">
-                <p className="text-text-muted font-bold text-sm">Anda belum memulai perjalanan sertifikasi.</p>
-                <button 
-                  onClick={() => setView('apl01')}
-                  className="mt-6 px-10 py-4 bg-accent text-white rounded-2xl font-bold shadow-xl shadow-accent/20 hover:scale-105 transition-all"
-                >
-                  DAFTAR SEKARANG
-                </button>
+           {!latestSub && !selectedScheme && (
+             <div className="mt-12 p-20 text-center border-4 border-dashed border-border-subtle rounded-[50px] bg-bg-main/30 group">
+                <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-xl group-hover:scale-110 transition-transform duration-500">
+                   <ShieldCheck size={40} className="text-accent" />
+                </div>
+                <h4 className="text-2xl font-black text-text-main mb-4 tracking-tight">Belum Ada Pengajuan Sertifikasi</h4>
+                <p className="text-sm text-text-muted font-bold max-w-sm mx-auto leading-relaxed">
+                   Silakan pilih salah satu skema sertifikasi di atas untuk memulai proses asesmen kompetensi Anda.
+                </p>
+             </div>
+           )}
+
+           {latestSub && (
+             <div className="mt-10 p-8 bg-bg-main rounded-3xl border border-border-subtle flex items-center justify-between">
+                <div>
+                   <p className="text-[10px] font-black text-text-muted uppercase tracking-[0.2em] mb-1">Status Terakhir</p>
+                   <p className="text-lg font-black text-text-main">{latestSub[3]}</p>
+                   <p className="text-xs font-bold text-accent mt-1 uppercase tracking-widest">{latestSub[6] || 'WAITING VALIDATION'}</p>
+                </div>
+                <div className="flex gap-3">
+                   <button onClick={fetchStatus} className="p-4 bg-white border border-border-subtle rounded-2xl text-text-muted hover:text-accent transition-all shadow-sm">
+                      <Database size={20} />
+                   </button>
+                   <button onClick={() => window.print()} className="p-4 bg-accent text-white rounded-2xl shadow-lg shadow-accent/20 hover:scale-105 transition-all">
+                      <Download size={20} />
+                   </button>
+                </div>
              </div>
            )}
         </section>
@@ -1277,7 +1491,7 @@ function MasterDataView({ title, sheetName, idColumn, columns }: { title: string
 function AdminVerification() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('Pending');
+  const [filter, setFilter] = useState('Waiting Validation');
 
   useEffect(() => {
     fetchSubmissions();
@@ -1317,7 +1531,7 @@ function AdminVerification() {
     }
   };
 
-  const filtered = submissions.filter(s => s[6] === filter || (!s[6] && filter === 'Pending'));
+  const filtered = submissions.filter(s => s[6] === filter || (!s[6] && filter === 'Waiting Validation'));
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -1327,13 +1541,13 @@ function AdminVerification() {
             <p className="text-sm text-text-muted font-medium mt-1">Review pendaftaran asesi dan hasil pengecekan portofolio AI.</p>
           </div>
           <div className="flex bg-white p-1 rounded-xl border border-border-subtle">
-             {['Pending', 'Verified', 'Rejected'].map(st => (
+             {['Waiting Validation', 'Verified', 'Rejected'].map(st => (
                <button 
                 key={st}
                 onClick={() => setFilter(st)}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === st ? 'bg-[#F1F5F9] text-accent' : 'text-text-muted hover:bg-bg-main'}`}
                >
-                 {st}
+                 {st === 'Waiting Validation' ? 'Antrean Baru' : st}
                </button>
              ))}
           </div>
@@ -1378,7 +1592,7 @@ function AdminVerification() {
                       </td>
                       <td className="px-8 py-6 text-right">
                          <div className="flex justify-end gap-2">
-                           {filter === 'Pending' && (
+                           {filter === 'Waiting Validation' && (
                              <>
                                <button 
                                  onClick={() => handleUpdateStatus(s[0], 'Verified')}
