@@ -62,8 +62,13 @@ export default function App() {
           >
             <div className="p-6 border-b border-border-subtle bg-white">
               <h1 className="text-sm font-bold tracking-tight text-text-main flex items-center gap-2">
-                <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center text-white">
-                  <ShieldCheck size={18} />
+                <div className="w-10 h-10 flex items-center justify-center">
+                  <img 
+                    src="https://lh3.googleusercontent.com/d/1INrEt4FMNAuKzkDe2lZaQVcYFOc8f9YN" 
+                    alt="Logo LSP" 
+                    className="w-full h-full object-contain"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
                 <div className="leading-none">
                   <p className="font-bold">LSP SMK TP1</p>
@@ -80,22 +85,22 @@ export default function App() {
                 label="Ringkasan Utama"
               />
               
-              {(user?.role?.toUpperCase() === 'ASESI' || user?.role?.toUpperCase() === 'ADMIN') && (
+              {(user?.role?.toUpperCase() === 'ASESI') && (
                 <>
                   <div className="pt-6 pb-2 px-4 shadow-sm mb-2 bg-bg-main/50 rounded-lg mx-2">
-                    <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Pendaftaran Siswa</p>
+                    <p className="text-[9px] font-black text-accent uppercase tracking-[0.2em]">Menu Siswa</p>
                   </div>
                   <NavItem 
                     active={view === 'apl01'} 
                     onClick={() => setView('apl01')}
                     icon={<UserCircle size={18} />}
-                    label="APL-01: Data Diri"
+                    label="Pendaftaran (APL-01)"
                   />
                   <NavItem 
                     active={view === 'apl02'} 
                     onClick={() => setView('apl02')}
                     icon={<ClipboardList size={18} />}
-                    label="APL-02: Asesmen"
+                    label="Asesmen (APL-02)"
                   />
                 </>
               )}
@@ -309,8 +314,13 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/5 rounded-full blur-3xl -mr-32 -mt-32"></div>
              
              <div className="relative z-10">
-                <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-white mb-8 shadow-xl shadow-accent/20">
-                  <ShieldCheck size={28} />
+                <div className="w-16 h-16 mb-8 flex items-center justify-center bg-white rounded-2xl shadow-xl shadow-black/5 p-2">
+                   <img 
+                     src="https://lh3.googleusercontent.com/d/1INrEt4FMNAuKzkDe2lZaQVcYFOc8f9YN" 
+                     alt="Logo LSP SMK TP1" 
+                     className="w-full h-full object-contain"
+                     referrerPolicy="no-referrer"
+                   />
                 </div>
                 <h2 className="text-4xl font-bold tracking-tight leading-tight text-text-main">
                   Manajemen Sertifikasi <br />
@@ -389,6 +399,40 @@ function LoginView({ onLogin }: { onLogin: (u: User) => void }) {
 
 // --- Dashboard View ---
 function DashboardView({ user, setView }: { user: User, setView: (v: string) => void }) {
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const res = await callGasAction({ 
+          action: 'readData', 
+          type: 'Data_APL01', 
+          userId: user?.userId 
+        });
+        if (res.status === 'success') {
+          setSubmissions(res.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat status:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStatus();
+  }, [user]);
+
+  const latestSub = submissions.length > 0 ? submissions[submissions.length - 1] : null;
+
+  if (loading) {
+    return (
+      <div className="bg-white p-12 rounded-3xl shadow-sm border border-border-subtle flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="font-bold text-text-muted animate-pulse">MENYINGKRONKAN STATUS...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex justify-between items-center bg-white p-8 rounded-3xl border border-border-subtle shadow-sm mb-6">
@@ -400,8 +444,10 @@ function DashboardView({ user, setView }: { user: User, setView: (v: string) => 
           </div>
         </div>
         <div className="text-right">
-          <span className="px-4 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-xs font-bold border border-yellow-100 uppercase tracking-wide">
-            {user?.role === 'ADMIN' ? 'Full System Access' : 'Status: Aktif'}
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold border uppercase tracking-wide ${
+            user?.role === 'ADMIN' ? 'bg-yellow-50 text-yellow-700 border-yellow-100' : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+          }`}>
+            {user?.role === 'ADMIN' ? 'Full System Access' : 'Siswa Aktif'}
           </span>
         </div>
       </header>
@@ -409,78 +455,81 @@ function DashboardView({ user, setView }: { user: User, setView: (v: string) => 
       <div className="grid md:grid-cols-3 gap-6">
         <StatCard 
           icon={<ShieldCheck className="text-accent" size={24} />}
-          label="Status APL-01"
-          value="Terverifikasi"
-          status="success"
+          label="Pengajuan APL-01"
+          value={latestSub ? latestSub[6] || latestSub['Status'] : 'Belum Mulai'}
+          status={latestSub ? (latestSub[6] === 'Verified' ? 'success' : 'pending') : 'none'}
         />
         <StatCard 
           icon={<ClipboardList className="text-emerald-500" size={24} />}
-          label="Unit Kompetensi"
-          value="12/12 Unit"
+          label="Proses Sertifikasi"
+          value={latestSub ? (latestSub[6] === 'Verified' ? 'Asesmen Mandiri' : 'Menunggu Approval') : 'Idle'}
           status="complete"
         />
         <StatCard 
-          icon={<PieChart className="text-accent" size={24} />}
-          label="Portofolio AI"
-          value="Valid (Vector)"
-          status="ai"
+          icon={<Download className="text-indigo-500" size={24} />}
+          label="Sertifikat / Bukti"
+          value={latestSub?.[6] === 'Verified' ? 'Download APL' : 'N/A'}
+          status={latestSub?.[6] === 'Verified' ? 'ai' : 'none'}
+          subValue={latestSub?.[6] === 'Verified' ? "Klik untuk Unduh" : ""}
+          onClick={() => latestSub?.[6] === 'Verified' && window.print()}
         />
       </div>
 
       <div className="grid lg:grid-cols-1 gap-8">
         <section className="bg-white p-10 rounded-3xl border border-border-subtle shadow-sm overflow-hidden relative">
-           <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-text-main">Aktivitas & Riwayat</h3>
-              <button 
-                onClick={() => setView('apl01')}
-                className="text-xs font-bold text-accent hover:underline"
-              >
-                Lihat Semua
-              </button>
-           </div>
-           
-           <div className="bg-gradient-to-br from-[#EFF6FF] to-[#DBEAFE] border border-[#BFDBFE] p-6 rounded-2xl mb-8 flex items-center gap-6">
-              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-white shadow-lg shadow-accent/20">
-                <span className="font-black">AI</span>
-              </div>
-              <div>
-                 <h4 className="text-[14px] font-bold text-text-main">Gemini AI Engine: Verifikasi Portofolio Otomatis</h4>
-                 <p className="text-[13px] text-blue-800 font-medium mt-1">
-                   Unit M.74100.009.02 (Menciptakan Karya Desain): <strong>File Valid (Identified: Vector Design Image)</strong>
-                 </p>
+           <div className="flex items-center justify-between mb-12">
+              <h3 className="text-xl font-bold text-text-main tracking-tight">Tracking Progress Sertifikasi</h3>
+              <div className="flex items-center gap-2 px-3 py-1 bg-accent/5 text-accent rounded-lg text-[10px] font-bold border border-accent/10">
+                 REAL-TIME UPDATE
               </div>
            </div>
 
-           <div className="space-y-0 border border-border-subtle rounded-2xl overflow-hidden">
-              <div className="grid grid-cols-3 bg-bg-main px-6 py-4 border-b border-border-subtle">
-                 <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-mono">Unit Kompetensi</div>
-                 <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-mono">Bukti Pendukung</div>
-                 <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest font-mono">Rekomendasi</div>
+           <div className="relative pb-10">
+              <div className="absolute top-5 left-8 right-8 h-1 bg-bg-main"></div>
+              <div className="relative flex justify-between">
+                 <ProgressStep active={!!latestSub} done={!!latestSub} label="Pendaftaran" sub="APL-01 Submitted" />
+                 <ProgressStep active={latestSub?.[6] === 'Verified'} done={latestSub?.[6] === 'Verified'} label="Verifikasi" sub="Approved by Admin" />
+                 <ProgressStep active={latestSub?.[6] === 'Verified'} done={false} label="Asesmen Mandiri" sub="Isi Form APL-02" />
+                 <ProgressStep active={false} done={false} label="Keluaran Sertifikat" sub="Pending Result" />
               </div>
-              <ActivityRow unit="M.74100.001.02" title="Mengaplikasikan Prinsip Dasar Desain" bukti="Sertifikat Pelatihan" reco="Kompeten" />
-              <ActivityRow unit="M.74100.002.02" title="Menerapkan Design Brief" bukti="Laporan Proyek" reco="Kompeten" />
-              <ActivityRow unit="M.74100.009.02" title="Menciptakan Karya Desain" bukti="File Desain (Logo.pdf)" reco="AI Verified" isSpecial />
            </div>
+           
+           {!latestSub && (
+             <div className="mt-8 p-12 text-center border-2 border-dashed border-border-subtle rounded-3xl bg-bg-main/30">
+                <p className="text-text-muted font-bold text-sm">Anda belum memulai perjalanan sertifikasi.</p>
+                <button 
+                  onClick={() => setView('apl01')}
+                  className="mt-6 px-10 py-4 bg-accent text-white rounded-2xl font-bold shadow-xl shadow-accent/20 hover:scale-105 transition-all"
+                >
+                  DAFTAR SEKARANG
+                </button>
+             </div>
+           )}
         </section>
       </div>
     </div>
   );
 }
 
-function StatCard({ icon, label, value, status }: { icon: React.ReactNode, label: string, value: string, status: string }) {
+function StatCard({ icon, label, value, status, subValue, onClick }: { icon: React.ReactNode, label: string, value: string, status: string, subValue?: string, onClick?: () => void }) {
   const badgeStyles: any = {
     success: "bg-emerald-50 text-emerald-700 border-emerald-100",
     complete: "bg-blue-50 text-blue-700 border-blue-100",
-    ai: "bg-indigo-50 text-indigo-700 border-indigo-100"
+    ai: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    pending: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    none: "bg-gray-50 text-gray-400 border-gray-100"
   };
 
   return (
-    <div className="bg-white p-8 rounded-3xl border border-border-subtle shadow-sm hover:shadow-md transition-shadow">
+    <div 
+      onClick={onClick}
+      className={`bg-white p-8 rounded-3xl border border-border-subtle shadow-sm transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:border-accent' : ''}`}
+    >
       <div className="mb-4">{icon}</div>
       <p className="text-[11px] uppercase font-bold text-text-muted tracking-widest mb-1.5">{label}</p>
-      <p className="text-2xl font-black text-text-main mb-4">{value}</p>
+      <p className="text-2xl font-black text-text-main mb-4 truncate">{value}</p>
       <div className={`inline-block px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${badgeStyles[status] || "bg-gray-50 text-gray-600 border-gray-100"}`}>
-        {status === 'success' ? 'Terverifikasi' : status === 'complete' ? 'Lengkap' : 'AI Active'}
+        {status === 'success' ? 'Terverifikasi' : status === 'complete' ? 'Lengkap' : status === 'ai' ? (subValue || 'Active') : status === 'pending' ? 'Diproses' : 'Tersedia'}
       </div>
     </div>
   );
@@ -508,13 +557,42 @@ function ActivityItem({ date, text }: { date: string, text: string }) {
   );
 }
 
+function ProgressStep({ active, done, label, sub }: { active: boolean, done: boolean, label: string, sub: string }) {
+  return (
+    <div className="flex flex-col items-center gap-3 relative z-10 bg-white px-2">
+       <div className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-500 shadow-sm ${
+         done ? 'bg-emerald-500 border-emerald-500 text-white' : 
+         active ? 'bg-accent border-accent text-white animate-pulse shadow-accent/20' : 
+         'bg-white border-border-subtle text-text-muted'
+       }`}>
+          {done ? <CheckCircle2 size={20} /> : <div className="w-2 h-2 rounded-full bg-current"></div>}
+       </div>
+       <div className="text-center">
+          <p className={`text-[11px] font-black uppercase tracking-widest ${active || done ? 'text-text-main' : 'text-text-muted font-bold'}`}>{label}</p>
+          <p className="text-[9px] text-text-muted font-medium mt-1 uppercase">{sub}</p>
+       </div>
+    </div>
+  );
+}
+
 // --- Asesi APL-01 Form ---
 function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: string) => void }) {
   const [formData, setFormData] = useState({
     nama: user?.nama || '',
     nisn: user?.nisn || '',
-    namaSkema: 'Junior Operator Desain Grafis',
+    nik: '',
+    tempatLahir: '',
+    tanggalLahir: '',
+    jenisKelamin: 'Laki-laki',
+    kebangsaan: 'Indonesia',
     alamat: '',
+    kota: 'Jakarta Utara',
+    kodePos: '14310',
+    noHp: '',
+    email: '',
+    pendidikan: 'SMK',
+    namaSkema: 'Junior Operator Desain Grafis',
+    tujuanAsesmen: 'Sertifikasi',
     linkBerkas: '',
     ttdAsesi: user?.nama || ''
   });
@@ -551,7 +629,15 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
         namaSkema: formData.namaSkema,
         alamat: formData.alamat,
         linkBerkas: formData.linkBerkas,
-        ttdAsesi: formData.ttdAsesi
+        ttdAsesi: user?.nama || '',
+        nik: formData.nik,
+        tempatLahir: formData.tempatLahir,
+        tanggalLahir: formData.tanggalLahir,
+        jenisKelamin: formData.jenisKelamin,
+        noHp: formData.noHp,
+        email: formData.email,
+        pendidikan: formData.pendidikan,
+        tujuanAsesmen: formData.tujuanAsesmen
       });
       if (res.status === 'success') {
         onComplete(res.idReg);
@@ -573,108 +659,161 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
          <p className="text-sm text-text-muted font-medium">Lengkapi data diri dan unggah berkas persyaratan administrasi.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-10">
-        <div className="grid md:grid-cols-2 gap-10">
-          <div className="space-y-8">
-             <div className="form-group">
-                <Label text="Nama Lengkap" />
-                <div className="relative">
-                  <select 
-                    required
-                    value={formData.nama} 
-                    onChange={(e) => {
-                      const selected = students.find(s => s['NAMA LENGKAP'] === e.target.value);
-                      console.log("Selected Student:", selected);
-                      setFormData({
-                        ...formData, 
-                        nama: e.target.value, 
-                        ttdAsesi: e.target.value,
-                        nisn: selected ? (selected['NIK'] || selected['NISN'] || '-') : formData.nisn
-                      });
-                    }}
-                    disabled={fetchingStudents}
-                    className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none appearance-none cursor-pointer" 
-                  >
-                    <option value="">Pilih Nama Siswa...</option>
-                    {students.map((s, idx) => (
-                      <option key={idx} value={s['NAMA LENGKAP']}>{s['NAMA LENGKAP']}</option>
-                    ))}
-                  </select>
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                    <ChevronDown size={18} />
-                  </div>
-                </div>
-                {fetchingStudents && <p className="text-[10px] text-accent font-bold mt-1 animate-pulse">Memuat data master...</p>}
-             </div>
-             <div className="form-group">
-                <Label text="NISN" />
-                <input 
-                  required
-                  value={formData.nisn} 
-                  onChange={(e) => setFormData({...formData, nisn: e.target.value})}
-                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" 
-                />
-             </div>
-             <div className="form-group">
-                <Label text="Skema Sertifikasi" />
-                <select 
-                  value={formData.namaSkema} 
-                  onChange={(e) => setFormData({...formData, namaSkema: e.target.value})}
-                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none appearance-none"
-                >
-                   <option>Junior Operator Desain Grafis</option>
-                   <option>Junior Content Creator</option>
-                </select>
-             </div>
-          </div>
-          <div className="space-y-8">
-             <div className="form-group">
-                <Label text="Alamat Lengkap" />
-                <textarea 
-                  required
-                  rows={4}
-                  value={formData.alamat}
-                  onChange={(e) => setFormData({...formData, alamat: e.target.value})}
-                  placeholder="Masukkan alamat domisili saat ini..."
-                  className="w-full px-5 py-4 bg-white border border-border-subtle rounded-2xl text-sm font-medium focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none min-h-[148px]"
-                ></textarea>
-             </div>
-             <div className="form-group">
-                <Label text="URL Link Berkas (KTP/Rapor)" />
-                <div className="relative">
-                   <input 
-                     required
-                     type="url"
-                     value={formData.linkBerkas}
-                     onChange={(e) => setFormData({...formData, linkBerkas: e.target.value})}
-                     className="w-full px-5 py-4 bg-[#F8FAFC] border border-border-subtle rounded-2xl text-sm font-mono focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none pl-12"
-                     placeholder="https://drive.google.com/..."
-                   />
-                   <AlertCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted/40" size={20} />
-                </div>
-                <p className="mt-3 text-[11px] text-text-muted font-medium italic">Berkas dalam format PDF/JPG satu file (Zip/Folder Drive)</p>
-             </div>
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-12">
+        {/* Bagian 1: Data Pribadi */}
+        <section className="space-y-8">
+           <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 bg-accent/10 text-accent rounded-xl flex items-center justify-center font-black">1</div>
+              <h3 className="text-lg font-bold text-text-main">Data Pribadi Asesi</h3>
+           </div>
+           
+           <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                 <div className="form-group">
+                    <Label text="Nama Lengkap" />
+                    <input 
+                      required
+                      value={formData.nama} 
+                      onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                      className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" 
+                    />
+                 </div>
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="form-group">
+                       <Label text="Tempat Lahir" />
+                       <input required value={formData.tempatLahir} onChange={(e) => setFormData({...formData, tempatLahir: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" />
+                    </div>
+                    <div className="form-group">
+                       <Label text="Tanggal Lahir" />
+                       <input required type="date" value={formData.tanggalLahir} onChange={(e) => setFormData({...formData, tanggalLahir: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" />
+                    </div>
+                 </div>
+                 <div className="form-group">
+                    <Label text="NIK / No KTP" />
+                    <input required value={formData.nik} onChange={(e) => setFormData({...formData, nik: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" placeholder="16 digit NIK..." />
+                 </div>
+              </div>
+
+              <div className="space-y-6">
+                 <div className="form-group">
+                    <Label text="Jenis Kelamin" />
+                    <div className="flex gap-4">
+                       {['Laki-laki', 'Perempuan'].map(jk => (
+                          <label key={jk} className="flex-1 cursor-pointer">
+                             <input type="radio" name="jk" checked={formData.jenisKelamin === jk} onChange={() => setFormData({...formData, jenisKelamin: jk})} className="sr-only peer" />
+                             <div className="py-3 text-center rounded-xl border border-border-subtle peer-checked:border-accent peer-checked:bg-accent/5 peer-checked:text-accent text-text-muted text-xs font-bold transition-all">{jk}</div>
+                          </label>
+                       ))}
+                    </div>
+                 </div>
+                 <div className="form-group">
+                    <Label text="Alamat Rumah" />
+                    <textarea 
+                      required
+                      rows={3}
+                      value={formData.alamat}
+                      onChange={(e) => setFormData({...formData, alamat: e.target.value})}
+                      className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none"
+                    ></textarea>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Bagian 2: Kontak & Pendidikan */}
+        <section className="space-y-8">
+           <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 rounded-xl flex items-center justify-center font-black">2</div>
+              <h3 className="text-lg font-bold text-text-main">Kontak & Pendidikan</h3>
+           </div>
+           
+           <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-6">
+                 <div className="form-group">
+                    <Label text="Nomor HP / WhatsApp" />
+                    <input required type="tel" value={formData.noHp} onChange={(e) => setFormData({...formData, noHp: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" />
+                 </div>
+                 <div className="form-group">
+                    <Label text="Email" />
+                    <input required type="email" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none" />
+                 </div>
+              </div>
+              <div className="space-y-6">
+                 <div className="form-group">
+                    <Label text="Pendidikan Terakhir" />
+                    <select value={formData.pendidikan} onChange={(e) => setFormData({...formData, pendidikan: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none">
+                       <option>SMP</option>
+                       <option>SMK</option>
+                       <option>Diploma</option>
+                       <option>Sarjana</option>
+                    </select>
+                 </div>
+                 <div className="form-group">
+                    <Label text="Tujuan Asesmen" />
+                    <select value={formData.tujuanAsesmen} onChange={(e) => setFormData({...formData, tujuanAsesmen: e.target.value})} className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none">
+                       <option>Sertifikasi</option>
+                       <option>Sertifikasi Ulang</option>
+                       <option>Pengakuan Kompetensi Terkini (PKT)</option>
+                    </select>
+                 </div>
+              </div>
+           </div>
+        </section>
+
+        {/* Bagian 3: Skema & Portofolio */}
+        <section className="space-y-8">
+           <div className="flex items-center gap-4 mb-6">
+              <div className="w-10 h-10 bg-indigo-500/10 text-indigo-600 rounded-xl flex items-center justify-center font-black">3</div>
+              <h3 className="text-lg font-bold text-text-main">Data Sertifikasi</h3>
+           </div>
+
+           <div className="grid md:grid-cols-2 gap-8">
+              <div className="form-group">
+                 <Label text="Skema Sertifikasi yang Diikuti" />
+                 <select 
+                   value={formData.namaSkema} 
+                   onChange={(e) => setFormData({...formData, namaSkema: e.target.value})}
+                   className="w-full px-5 py-3.5 bg-bg-main border border-border-subtle rounded-2xl text-sm font-bold focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none"
+                 >
+                    <option>Junior Operator Desain Grafis</option>
+                    <option>Junior Content Creator</option>
+                 </select>
+              </div>
+              <div className="form-group">
+                 <Label text="Link Folder Drive Portofolio (KTP/Rapor/Karya)" />
+                 <input 
+                   required
+                   type="url"
+                   value={formData.linkBerkas}
+                   onChange={(e) => setFormData({...formData, linkBerkas: e.target.value})}
+                   className="w-full px-5 py-3.5 bg-[#F8FAFC] border border-border-subtle rounded-2xl text-xs font-mono focus:ring-4 focus:ring-accent/5 focus:border-accent outline-none"
+                   placeholder="https://drive.google.com/..."
+                 />
+                 <p className="mt-3 text-[10px] text-text-muted font-bold italic uppercase tracking-wider">Gabungkan semua file dalam 1 folder drive</p>
+              </div>
+           </div>
+        </section>
+
+        <div className="p-8 bg-slate-50 rounded-2xl border-2 border-dashed border-border-subtle flex flex-col md:flex-row items-center justify-between gap-8">
+           <div className="max-w-md">
+              <p className="text-[11px] uppercase tracking-[0.2em] font-black text-text-muted mb-2">Konfirmasi Integritas</p>
+              <p className="text-xs text-text-main font-bold leading-relaxed">
+                 Saya menandatangani dokumen ini sebagai bukti bahwa saya telah membaca, memahami, dan menyetujui seluruh ketentuan sertifikasi di LSP SMK Tanjung Priok 1.
+              </p>
+           </div>
+           <div className="bg-white px-10 py-6 rounded-2xl shadow-xl shadow-black/5 border border-border-subtle min-w-[280px] text-center italic font-serif text-2xl text-accent border-b-4 border-b-accent">
+              {user?.nama}
+           </div>
         </div>
 
-        <div className="p-8 bg-bg-main rounded-2xl border border-dashed border-border-subtle flex flex-col md:flex-row items-center justify-between gap-8">
-           <div>
-              <p className="text-[11px] uppercase tracking-widest font-bold text-text-muted mb-2">Pernyataan Asesi</p>
-              <p className="text-xs text-text-main font-medium leading-relaxed max-w-md">"Saya menyatakan bahwa data yang saya berikan adalah benar dan dapat dipertanggungjawabkan sesuai dengan ketentuan LSP SMK Tanjung Priok 1."</p>
-           </div>
-           <div className="bg-white px-8 py-5 rounded-2xl shadow-sm border border-border-subtle min-w-[240px] text-center italic font-serif text-xl text-text-main">
-              {formData.ttdAsesi}
-           </div>
-        </div>
-
-        <div className="flex justify-end pt-4">
+        <div className="flex justify-end pt-6">
           <button 
              type="submit" 
              disabled={loading}
-             className="px-10 py-4 bg-accent text-white rounded-2xl font-bold tracking-wide hover:bg-blue-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-accent/20"
+             className="w-full md:w-auto px-12 py-5 bg-accent text-white rounded-2xl font-black tracking-widest hover:bg-blue-700 hover:shadow-2xl shadow-accent/20 transition-all flex items-center justify-center gap-4"
           >
-            {loading ? 'MENYIMPAN...' : 'LANJUT KE TAHAP BERIKUTNYA'}
-            <ClipboardList size={20} />
+            {loading ? 'MENYIMPAN DATA...' : 'SUBMIT PENDAFTARAN & LANJUT KE APL-02'}
+            <Plus size={20} />
           </button>
         </div>
       </form>
@@ -1136,11 +1275,49 @@ function MasterDataView({ title, sheetName, idColumn, columns }: { title: string
 
 // --- Admin Verification View ---
 function AdminVerification() {
-  const students = [
-    { id: 'REG-12345', nama: 'Budi Santoso', skema: 'Graphic Design', tgl: '02/05/2026', status: 'Pending' },
-    { id: 'REG-12346', nama: 'Ani Wijaya', skema: 'Graphic Design', tgl: '01/05/2026', status: 'Pending' },
-    { id: 'REG-12347', nama: 'Siti Rahma', skema: 'TKJ', tgl: '30/04/2026', status: 'Verified' }
-  ];
+  const [submissions, setSubmissions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('Pending');
+
+  useEffect(() => {
+    fetchSubmissions();
+  }, []);
+
+  const fetchSubmissions = async () => {
+    setLoading(true);
+    try {
+      const res = await callGasAction({ action: 'readData', type: 'Data_APL01' });
+      if (res.status === 'success') {
+        setSubmissions(res.data);
+      }
+    } catch (err) {
+      console.error("Gagal memuat antrean:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateStatus = async (idReg: string, status: string) => {
+    if (!confirm(`Ubah status pengajuan ${idReg} menjadi ${status}?`)) return;
+    
+    try {
+      const res = await callGasAction({ 
+        action: 'updateStatus', 
+        idReg: idReg, 
+        status: status 
+      });
+      if (res.status === 'success') {
+        alert("Status berhasil diperbarui");
+        fetchSubmissions();
+      } else {
+        alert("Gagal: " + res.message);
+      }
+    } catch (err) {
+      alert("Terjadi kesalahan sistem");
+    }
+  };
+
+  const filtered = submissions.filter(s => s[6] === filter || (!s[6] && filter === 'Pending'));
 
   return (
     <div className="space-y-8 animate-in slide-in-from-right-4 duration-500">
@@ -1150,8 +1327,15 @@ function AdminVerification() {
             <p className="text-sm text-text-muted font-medium mt-1">Review pendaftaran asesi dan hasil pengecekan portofolio AI.</p>
           </div>
           <div className="flex bg-white p-1 rounded-xl border border-border-subtle">
-             <button className="px-4 py-2 bg-[#F1F5F9] text-accent rounded-lg text-xs font-bold transition-all">Pending</button>
-             <button className="px-4 py-2 hover:bg-bg-main text-text-muted rounded-lg text-xs font-bold transition-all">Verified</button>
+             {['Pending', 'Verified', 'Rejected'].map(st => (
+               <button 
+                key={st}
+                onClick={() => setFilter(st)}
+                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${filter === st ? 'bg-[#F1F5F9] text-accent' : 'text-text-muted hover:bg-bg-main'}`}
+               >
+                 {st}
+               </button>
+             ))}
           </div>
        </div>
 
@@ -1163,27 +1347,56 @@ function AdminVerification() {
                    <th className="px-8 py-5">NAMA ASESI</th>
                    <th className="px-8 py-5">TGL DAFTAR</th>
                    <th className="px-8 py-5">STATUS</th>
-                   <th className="px-8 py-5"></th>
+                   <th className="px-8 py-5 text-right whitespace-nowrap">AKSI</th>
                 </tr>
              </thead>
              <tbody className="divide-y divide-border-subtle">
-                {students.map((s) => (
-                   <tr key={s.id} className="hover:bg-bg-main transition-colors">
-                      <td className="px-8 py-6 font-mono text-xs font-bold text-accent">{s.id}</td>
+                {loading ? (
+                   <tr>
+                      <td colSpan={5} className="px-8 py-20 text-center text-text-muted animate-pulse font-bold">MENYINKRONKAN DATABASE...</td>
+                   </tr>
+                ) : filtered.length === 0 ? (
+                   <tr>
+                      <td colSpan={5} className="px-8 py-20 text-center text-text-muted font-medium">Tidak ada antrean dalam kategori ini.</td>
+                   </tr>
+                ) : filtered.map((s, idx) => (
+                   <tr key={idx} className="hover:bg-bg-main transition-colors">
+                      <td className="px-8 py-6 font-mono text-xs font-bold text-accent">{s[0]}</td>
                       <td className="px-8 py-6">
-                         <p className="font-bold text-text-main">{s.nama}</p>
-                         <p className="text-[10px] text-text-muted font-bold uppercase tracking-wide mt-0.5">{s.skema}</p>
+                         <p className="font-bold text-text-main">{s[1]}</p>
+                         <p className="text-[10px] text-text-muted font-bold uppercase tracking-wide mt-0.5">{s[3]}</p>
                       </td>
-                      <td className="px-8 py-6 text-sm font-medium text-text-muted">{s.tgl}</td>
+                      <td className="px-8 py-6 text-sm font-medium text-text-muted">{new Date(s[2]).toLocaleDateString()}</td>
                       <td className="px-8 py-6">
                          <span className={`px-4 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
-                           s.status === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-yellow-50 text-yellow-600 border-yellow-100'
+                           s[6] === 'Verified' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
+                           s[6] === 'Rejected' ? 'bg-red-50 text-red-600 border-red-100' : 
+                           'bg-yellow-50 text-yellow-600 border-yellow-100'
                          }`}>
-                           {s.status}
+                           {s[6] || 'Pending'}
                          </span>
                       </td>
                       <td className="px-8 py-6 text-right">
-                         <button className="px-4 py-2 text-xs font-bold text-accent bg-accent/5 hover:bg-accent/10 rounded-xl transition-all">Detail Periksa</button>
+                         <div className="flex justify-end gap-2">
+                           {filter === 'Pending' && (
+                             <>
+                               <button 
+                                 onClick={() => handleUpdateStatus(s[0], 'Verified')}
+                                 className="px-3 py-2 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-all border border-emerald-100"
+                               >Setujui</button>
+                               <button 
+                                 onClick={() => handleUpdateStatus(s[0], 'Rejected')}
+                                 className="px-3 py-2 text-[10px] font-black uppercase text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-all border border-red-100"
+                               >Tolak</button>
+                             </>
+                           )}
+                           <a 
+                             href={s[5]} 
+                             target="_blank" 
+                             rel="noopener noreferrer"
+                             className="px-3 py-2 text-[10px] font-black uppercase text-accent bg-accent/5 hover:bg-accent/10 rounded-lg transition-all border border-accent/10"
+                           >Berkas</a>
+                         </div>
                       </td>
                    </tr>
                 ))}
@@ -1196,6 +1409,51 @@ function AdminVerification() {
 
 // --- Direktur Dashboard View ---
 function DirekturDashboard() {
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await callGasAction({ action: 'readData', type: 'Data_APL01' });
+        if (res.status === 'success') {
+          setData(res.data);
+        }
+      } catch (err) {
+        console.error("Gagal memuat data rekap:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const total = data.length;
+  const kompeten = data.filter(s => s[6] === 'Verified').length;
+  const rejected = data.filter(s => s[6] === 'Rejected').length;
+  const pending = data.filter(s => !s[6] || s[6] === 'Pending').length;
+
+  const exportRekapCSV = () => {
+    if (data.length === 0) return;
+    const headers = "ID Reg,Nama,Tanggal,Skema,Alamat,Link,Status";
+    const rows = data.map(s => s.join(',')).join('\n');
+    const blob = new Blob([`${headers}\n${rows}`], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `REKAP_LSP_${new Date().getTime()}.csv`;
+    link.click();
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white p-12 rounded-3xl shadow-sm border border-border-subtle flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="font-bold text-text-muted animate-pulse font-mono tracking-widest text-xs">MENGKALKULASI DATA REAL-TIME...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10 animate-in zoom-in-95 duration-500">
        <div className="bg-white p-10 rounded-3xl border border-border-subtle shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
@@ -1203,20 +1461,29 @@ function DirekturDashboard() {
             <h2 className="text-3xl font-bold tracking-tight text-text-main">Ringkasan Kinerja LSP</h2>
             <p className="text-sm text-text-muted font-medium mt-1">Laporan rekapitulasi sertifikasi SMK Tanjung Priok 1.</p>
           </div>
-          <button 
-            onClick={() => window.print()}
-            className="flex items-center gap-3 bg-accent text-white px-8 py-4 rounded-2xl font-bold text-sm hover:translate-y-[-2px] hover:shadow-xl shadow-accent/20 transition-all"
-          >
-             <Printer size={20} />
-             UNDUH LAPORAN PDF
-          </button>
+          <div className="flex gap-3">
+             <button 
+                onClick={exportRekapCSV}
+                className="flex items-center gap-3 bg-white border border-border-subtle text-text-main px-8 py-4 rounded-2xl font-bold text-sm hover:bg-bg-main transition-all"
+             >
+                <Download size={20} />
+                EKSPOR CSV
+             </button>
+             <button 
+               onClick={() => window.print()}
+               className="flex items-center gap-3 bg-accent text-white px-8 py-4 rounded-2xl font-bold text-sm hover:translate-y-[-2px] hover:shadow-xl shadow-accent/20 transition-all"
+             >
+                <Printer size={20} />
+                CETAK PDF
+             </button>
+          </div>
        </div>
 
        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          <MetricCard label="TOTAL ASESI" value="128" change="+12%" />
-          <MetricCard label="KOMPETEN" value="84" change="65%" color="text-emerald-500" />
-          <MetricCard label="BELUM KOMPETEN" value="12" change="9%" color="text-red-500" />
-          <MetricCard label="PROSES VERIFIKASI" value="32" change="25%" color="text-accent" />
+          <MetricCard label="TOTAL ASESI" value={total.toString()} change={`${total > 0 ? '100%' : '0%'}`} />
+          <MetricCard label="KOMPETEN" value={kompeten.toString()} change={`${total > 0 ? Math.round((kompeten/total)*100) : 0}%`} color="text-emerald-500" />
+          <MetricCard label="BELUM KOMPETEN" value={rejected.toString()} change={`${total > 0 ? Math.round((rejected/total)*100) : 0}%`} color="text-red-500" />
+          <MetricCard label="PROSES VERIFIKASI" value={pending.toString()} change={`${total > 0 ? Math.round((pending/total)*100) : 0}%`} color="text-accent" />
        </div>
 
        <div className="grid lg:grid-cols-5 gap-8">
@@ -1226,9 +1493,8 @@ function DirekturDashboard() {
                 Distribusi Berdasarkan Skema
              </h3>
              <div className="space-y-8">
-                <ProgressItem label="Graphic Design" value={70} color="bg-accent" />
-                <ProgressItem label="Teknik Komputer & Jaringan" value={45} color="bg-emerald-500" />
-                <ProgressItem label="Akuntansi Perkantoran" value={30} color="bg-yellow-500" />
+                <ProgressItem label="Junior Operator Desain Grafis" value={data.filter(s => s[3].includes('Desain')).length > 0 ? Math.round((data.filter(s => s[3].includes('Desain')).length / total)*100) : 0} color="bg-accent" />
+                <ProgressItem label="Lainnya" value={data.filter(s => !s[3].includes('Desain')).length > 0 ? Math.round((data.filter(s => !s[3].includes('Desain')).length / total)*100) : 0} color="bg-emerald-500" />
              </div>
           </div>
           <div className="lg:col-span-2 space-y-6">
@@ -1247,7 +1513,7 @@ function DirekturDashboard() {
                    <ShieldCheck size={36} className="text-blue-100" />
                    <span className="text-[10px] font-bold tracking-widest bg-blue-500/50 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 uppercase">Core System Online</span>
                 </div>
-                <p className="text-[15px] font-medium leading-relaxed relative z-10">Sinkronisasi Real-time dengan Infrastructure Google Sheets v4 Berhasil.</p>
+                <p className="text-[15px] font-medium leading-relaxed relative z-10">Data tersinkronisasi otomatis dengan server pusat i-SMK LSP TP1.</p>
              </div>
           </div>
        </div>
