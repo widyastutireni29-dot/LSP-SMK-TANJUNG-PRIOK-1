@@ -2,10 +2,11 @@
  * Service for interacting with Google Apps Script API
  */
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwGfYEMAzhYSB7WJRa7MJYGZdQtoU26bdBMZjtodd3sLOVtj-jvCnDerixXpKohRkkn/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzxqaMtZ44pc0wSkaqRz2DCPBgRj5x3dz1MpDdMS2Mq1vSmIYOjlNQ2ZyvQHmrrE-Y7/exec';
 
 export async function callGasAction(data: any) {
   try {
+    console.log("Calling GAS with:", data);
     const response = await fetch(GAS_URL, {
       method: 'POST',
       headers: {
@@ -18,14 +19,22 @@ export async function callGasAction(data: any) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const result = await response.json();
+    const text = await response.text();
+    let result;
+    try {
+      result = JSON.parse(text);
+    } catch (e) {
+      console.error("Failed to parse GAS response:", text);
+      throw new Error("Format respons server tidak valid.");
+    }
+
     console.log("GAS Result:", result);
     return result;
   } catch (error) {
     console.error('GAS Service Error:', error);
     return { 
       status: 'error', 
-      message: 'Gagal terhubung ke server. Pastikan App Script sudah di-deploy dengan benar.' 
+      message: error instanceof Error ? error.message : 'Gagal terhubung ke server.' 
     };
   }
 }

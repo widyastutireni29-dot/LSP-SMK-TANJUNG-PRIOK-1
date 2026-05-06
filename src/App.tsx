@@ -158,11 +158,11 @@ export default function App() {
             <div className="p-4 border-t border-border-subtle">
               <div className="flex items-center gap-3 px-2 py-3 bg-bg-main rounded-xl">
                 <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center font-bold text-xs text-accent">
-                  {user.nama.charAt(0)}
+                  {user?.nama?.charAt(0) || 'U'}
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="text-xs font-semibold truncate">{user.nama}</p>
-                  <p className="text-[10px] text-text-muted uppercase tracking-wider">{user.role}</p>
+                  <p className="text-xs font-semibold truncate">{user?.nama || 'Unknown User'}</p>
+                  <p className="text-[10px] text-text-muted uppercase tracking-wider">{user?.role || 'Guest'}</p>
                 </div>
                 <button 
                   onClick={() => setUser(null)}
@@ -210,15 +210,15 @@ export default function App() {
               sheetName="DATA SISWA" 
               idColumn="NIK"
               columns={[
-                { key: 'Nama Lengkap', label: 'Nama Lengkap' },
+                { key: 'NAMA LENGKAP', label: 'Nama Lengkap' },
                 { key: 'NIK', label: 'NIK' },
-                { key: 'Tempat Lahir', label: 'Tempat Lahir' },
-                { key: 'Tanggal Lahir', label: 'Tanggal Lahir' },
-                { key: 'Jenis Kelamin', label: 'Jenis Kelamin' },
-                { key: 'Nomor WhatsApp', label: 'Nomor WhatsApp' },
-                { key: 'Email', label: 'Email' },
-                { key: 'Skema Sertifikasi yang Diikuti', label: 'Skema Sertifikasi' },
-                { key: 'Tahun Ajaran', label: 'Tahun Ajaran' }
+                { key: 'TEMPAT LAHIR', label: 'Tempat Lahir' },
+                { key: 'TANGGAL LAHIR', label: 'Tanggal Lahir' },
+                { key: 'JENIS KELAMIN', label: 'Jenis Kelamin' },
+                { key: 'NOMOR WHATSAPP', label: 'Nomor WhatsApp' },
+                { key: 'EMAIL', label: 'Email' },
+                { key: 'SKEMA SERTIFIKASI YANG DIIKUTI', label: 'Skema Sertifikasi' },
+                { key: 'TAHUN AJARAN', label: 'Tahun Ajaran' }
               ]} 
             />
           )}
@@ -226,11 +226,11 @@ export default function App() {
             <MasterDataView 
               title="Data Unit Kompetensi" 
               sheetName="DATA UNIT KOMPETENSI" 
-              idColumn="Kode Unit"
+              idColumn="KODE UNIT"
               columns={[
-                { key: 'Kode Unit', label: 'Kode Unit' },
-                { key: 'Judul Unit', label: 'Judul Unit' },
-                { key: 'Jenis Unit', label: 'Jenis Unit (Inti/Pilihan)' }
+                { key: 'KODE UNIT', label: 'Kode Unit' },
+                { key: 'JUDUL UNIT', label: 'Judul Unit' },
+                { key: 'JENIS UNIT', label: 'Jenis Unit (Inti/Pilihan)' }
               ]} 
             />
           )}
@@ -393,15 +393,15 @@ function DashboardView({ user, setView }: { user: User, setView: (v: string) => 
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex justify-between items-center bg-white p-8 rounded-3xl border border-border-subtle shadow-sm mb-6">
         <div>
-          <h2 className="text-3xl font-bold text-text-main tracking-tight">Selamat Datang, {user.nama}</h2>
+          <h2 className="text-3xl font-bold text-text-main tracking-tight">Selamat Datang, {user?.nama || 'Pengguna'}</h2>
           <div className="flex items-center gap-2 mt-2">
-             <span className="px-2.5 py-0.5 bg-accent text-white text-[10px] font-black rounded-md uppercase tracking-wider">ROLE: {user.role}</span>
+             <span className="px-2.5 py-0.5 bg-accent text-white text-[10px] font-black rounded-md uppercase tracking-wider">ROLE: {user?.role || 'GUEST'}</span>
              <p className="text-sm text-text-muted font-medium italic">Sistem Manajemen LSP SMK Tanjung Priok 1</p>
           </div>
         </div>
         <div className="text-right">
           <span className="px-4 py-1.5 bg-yellow-50 text-yellow-700 rounded-full text-xs font-bold border border-yellow-100 uppercase tracking-wide">
-            {user.role === 'ADMIN' ? 'Full System Access' : 'Status: Aktif'}
+            {user?.role === 'ADMIN' ? 'Full System Access' : 'Status: Aktif'}
           </span>
         </div>
       </header>
@@ -511,12 +511,12 @@ function ActivityItem({ date, text }: { date: string, text: string }) {
 // --- Asesi APL-01 Form ---
 function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: string) => void }) {
   const [formData, setFormData] = useState({
-    nama: user.nama,
-    nisn: user.nisn || '',
+    nama: user?.nama || '',
+    nisn: user?.nisn || '',
     namaSkema: 'Junior Operator Desain Grafis',
     alamat: '',
     linkBerkas: '',
-    ttdAsesi: user.nama
+    ttdAsesi: user?.nama || ''
   });
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
@@ -528,6 +528,8 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
         const res = await callGasAction({ action: 'readData', type: 'DATA SISWA' });
         if (res.status === 'success') {
           setStudents(res.data);
+        } else {
+          console.error("Gagal memuat data siswa:", res.message);
         }
       } catch (err) {
         console.error("Gagal memuat data siswa:", err);
@@ -545,7 +547,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
     try {
       const res = await callGasAction({ 
         action: 'saveAPL01', 
-        userId: user.userId,
+        userId: user?.userId || 'unknown',
         namaSkema: formData.namaSkema,
         alamat: formData.alamat,
         linkBerkas: formData.linkBerkas,
@@ -581,7 +583,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                     required
                     value={formData.nama} 
                     onChange={(e) => {
-                      const selected = students.find(s => s['Nama Lengkap'] === e.target.value);
+                      const selected = students.find(s => s['NAMA LENGKAP'] === e.target.value);
                       console.log("Selected Student:", selected);
                       setFormData({
                         ...formData, 
@@ -595,7 +597,7 @@ function AsesiAPL01({ user, onComplete }: { user: User, onComplete: (regId: stri
                   >
                     <option value="">Pilih Nama Siswa...</option>
                     {students.map((s, idx) => (
-                      <option key={idx} value={s['Nama Lengkap']}>{s['Nama Lengkap']}</option>
+                      <option key={idx} value={s['NAMA LENGKAP']}>{s['NAMA LENGKAP']}</option>
                     ))}
                   </select>
                   <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
@@ -685,18 +687,42 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
   const [loading, setLoading] = useState(false);
   const [aiStatus, setAiStatus] = useState<any>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [units, setUnits] = useState<any[]>([]);
+  const [fetchingUnits, setFetchingUnits] = useState(true);
+  const [answers, setAnswers] = useState<any[]>([]);
 
-  const units = [
-    { kode: 'M.74100.001.02', judul: 'Mengaplikasikan Prinsip Dasar Desain' },
-    { kode: 'M.74100.002.02', judul: 'Menerapkan Pengetahuan Desain' },
-    { kode: 'M.74100.009.02', judul: 'Menciptakan Karya Desain' },
-    { kode: 'M.74100.010.02', judul: 'Mempresentasikan Karya Desain' }
-  ];
-
-  const [answers, setAnswers] = useState(units.map(() => ({ k: true, link: '' })));
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        const res = await callGasAction({ action: 'readData', type: 'DATA UNIT KOMPETENSI' });
+        if (res.status === 'success') {
+          setUnits(res.data);
+          setAnswers(res.data.map(() => ({ k: true, link: '' })));
+        } else {
+          console.error("Gagal memuat unit kompetensi:", res.message);
+          // Fallback if sheet empty
+          const fallback = [
+            { 'Kode Unit': 'M.74100.001.02', 'Judul Unit': 'Mengaplikasikan Prinsip Dasar Desain' },
+            { 'Kode Unit': 'M.74100.002.02', 'Judul Unit': 'Menerapkan Pengetahuan Desain' },
+            { 'Kode Unit': 'M.74100.009.02', 'Judul Unit': 'Menciptakan Karya Desain' },
+            { 'Kode Unit': 'M.74100.010.02', 'Judul Unit': 'Mempresentasikan Karya Desain' }
+          ];
+          setUnits(fallback);
+          setAnswers(fallback.map(() => ({ k: true, link: '' })));
+        }
+      } catch (err) {
+        console.error("Gagal memuat unit:", err);
+      } finally {
+        setFetchingUnits(false);
+      }
+    };
+    fetchUnits();
+  }, []);
 
   const handleAiCheck = async (index: number) => {
-    if (index !== 2) return;
+    const unit = units[index];
+    const kode = unit['KODE UNIT'] || unit['Kode Unit'] || unit['kode'];
+    if (kode !== 'M.74100.009.02') return;
     if (!answers[index].link) return alert("Harap isi link bukti terlebih dahulu");
 
     setAiLoading(true);
@@ -711,8 +737,8 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
     
     try {
       const unitPayload = units.map((unit, idx) => ({
-        kodeUnit: unit.kode,
-        judulUnit: unit.judul,
+        kodeUnit: unit['KODE UNIT'] || unit['Kode Unit'] || unit['kode'],
+        judulUnit: unit['JUDUL UNIT'] || unit['Judul Unit'] || unit['judul'],
         jawaban: answers[idx].k ? 'K' : 'BK',
         linkBukti: answers[idx].link
       }));
@@ -729,6 +755,15 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
       setLoading(false);
     }
   };
+
+  if (fetchingUnits) {
+    return (
+      <div className="bg-white p-12 rounded-3xl shadow-sm border border-border-subtle flex flex-col items-center justify-center min-h-[400px]">
+        <div className="w-12 h-12 border-4 border-accent border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="font-bold text-text-muted animate-pulse tracking-wide">MEMUAT DAFTAR UNIT KOMPETENSI...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white p-12 rounded-3xl shadow-sm border border-border-subtle animate-in fade-in zoom-in-95 duration-500">
@@ -762,71 +797,76 @@ function AsesiAPL02({ user, idReg, onComplete }: { user: User, idReg: string | n
                 </tr>
              </thead>
              <tbody className="divide-y divide-border-subtle">
-                {units.map((unit, idx) => (
-                   <tr key={unit.kode} className="hover:bg-[#F8FAFC]/50 transition-colors">
-                      <td className="px-8 py-6">
-                         <p className="font-mono text-[10px] font-bold text-accent mb-1">{unit.kode}</p>
-                         <p className="font-bold text-text-main text-sm leading-snug">{unit.judul}</p>
-                      </td>
-                      <td className="px-8 py-6">
-                         <div className="flex justify-center gap-4">
-                            <label className="cursor-pointer group">
-                               <input type="radio" name={`ans-${idx}`} checked={answers[idx].k} onChange={() => {
+                {units.map((unit, idx) => {
+                   const kode = unit['KODE UNIT'] || unit['Kode Unit'] || unit['kode'];
+                   const judul = unit['JUDUL UNIT'] || unit['Judul Unit'] || unit['judul'];
+                   
+                   return (
+                     <tr key={idx} className="hover:bg-[#F8FAFC]/50 transition-colors">
+                        <td className="px-8 py-6">
+                           <p className="font-mono text-[10px] font-bold text-accent mb-1">{kode}</p>
+                           <p className="font-bold text-text-main text-sm leading-snug">{judul}</p>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex justify-center gap-4">
+                              <label className="cursor-pointer group">
+                                 <input type="radio" name={`ans-${idx}`} checked={answers[idx]?.k} onChange={() => {
+                                   const newAns = [...answers];
+                                   newAns[idx].k = true;
+                                   setAnswers(newAns);
+                                 }} className="sr-only peer" />
+                                 <div className="w-10 h-10 rounded-xl border-2 border-border-subtle flex items-center justify-center peer-checked:border-accent peer-checked:bg-accent peer-checked:text-white text-text-muted font-bold transition-all text-sm">K</div>
+                              </label>
+                              <label className="cursor-pointer group">
+                                 <input type="radio" name={`ans-${idx}`} checked={!answers[idx]?.k} onChange={() => {
+                                   const newAns = [...answers];
+                                   newAns[idx].k = false;
+                                   setAnswers(newAns);
+                                 }} className="sr-only peer" />
+                                 <div className="w-10 h-10 rounded-xl border-2 border-border-subtle flex items-center justify-center peer-checked:border-red-500 peer-checked:bg-red-500 peer-checked:text-white text-text-muted font-bold transition-all text-sm">BK</div>
+                              </label>
+                           </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex gap-2">
+                             <input 
+                               required
+                               type="url"
+                               value={answers[idx]?.link || ''}
+                               onChange={(e) => {
                                  const newAns = [...answers];
-                                 newAns[idx].k = true;
+                                 newAns[idx].link = e.target.value;
                                  setAnswers(newAns);
-                               }} className="sr-only peer" />
-                               <div className="w-10 h-10 rounded-xl border-2 border-border-subtle flex items-center justify-center peer-checked:border-accent peer-checked:bg-accent peer-checked:text-white text-text-muted font-bold transition-all text-sm">K</div>
-                            </label>
-                            <label className="cursor-pointer group">
-                               <input type="radio" name={`ans-${idx}`} checked={!answers[idx].k} onChange={() => {
-                                 const newAns = [...answers];
-                                 newAns[idx].k = false;
-                                 setAnswers(newAns);
-                               }} className="sr-only peer" />
-                               <div className="w-10 h-10 rounded-xl border-2 border-border-subtle flex items-center justify-center peer-checked:border-red-500 peer-checked:bg-red-500 peer-checked:text-white text-text-muted font-bold transition-all text-sm">BK</div>
-                            </label>
-                         </div>
-                      </td>
-                      <td className="px-8 py-6">
-                         <div className="flex gap-2">
-                           <input 
-                             required
-                             type="url"
-                             value={answers[idx].link}
-                             onChange={(e) => {
-                               const newAns = [...answers];
-                               newAns[idx].link = e.target.value;
-                               setAnswers(newAns);
-                             }}
-                             className="flex-1 px-4 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent"
-                             placeholder="Link Bukti..."
-                           />
-                           {unit.kode === 'M.74100.009.02' && (
-                             <button 
-                               type="button"
-                               onClick={() => handleAiCheck(idx)}
-                               className="px-3 bg-text-main text-white rounded-xl hover:bg-black transition-colors"
-                             >
-                                <ShieldCheck size={16} />
-                             </button>
+                               }}
+                               className="flex-1 px-4 py-2.5 bg-bg-main border border-border-subtle rounded-xl text-xs font-mono outline-none focus:ring-2 focus:ring-accent/10 focus:border-accent"
+                               placeholder="Link Bukti..."
+                             />
+                             {kode === 'M.74100.009.02' && (
+                               <button 
+                                 type="button"
+                                 onClick={() => handleAiCheck(idx)}
+                                 className="px-3 bg-text-main text-white rounded-xl hover:bg-black transition-colors"
+                               >
+                                  <ShieldCheck size={16} />
+                               </button>
+                             )}
+                           </div>
+                           {idx === 2 && aiLoading && <p className="text-[11px] text-accent mt-2 animate-pulse font-bold italic">AI sedang memproses berkas...</p>}
+                           {idx === 2 && aiStatus && (
+                              <div className={`mt-3 p-4 rounded-xl text-xs flex items-start gap-3 border ${aiStatus.isDesign ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
+                                 <div className={`p-1.5 rounded-lg ${aiStatus.isDesign ? 'bg-emerald-200' : 'bg-red-200'}`}>
+                                   {aiStatus.isDesign ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
+                                 </div>
+                                 <div>
+                                    <p className="font-black uppercase tracking-tight mb-1">Hasil Verifikasi AI ({Math.round(aiStatus.confidence * 100)}%)</p>
+                                    <p className="font-medium opacity-80">{aiStatus.explanation}</p>
+                                 </div>
+                              </div>
                            )}
-                         </div>
-                         {idx === 2 && aiLoading && <p className="text-[11px] text-accent mt-2 animate-pulse font-bold italic">AI sedang memproses berkas...</p>}
-                         {idx === 2 && aiStatus && (
-                            <div className={`mt-3 p-4 rounded-xl text-xs flex items-start gap-3 border ${aiStatus.isDesign ? 'bg-emerald-50 border-emerald-100 text-emerald-800' : 'bg-red-50 border-red-100 text-red-800'}`}>
-                               <div className={`p-1.5 rounded-lg ${aiStatus.isDesign ? 'bg-emerald-200' : 'bg-red-200'}`}>
-                                 {aiStatus.isDesign ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                               </div>
-                               <div>
-                                  <p className="font-black uppercase tracking-tight mb-1">Hasil Verifikasi AI ({Math.round(aiStatus.confidence * 100)}%)</p>
-                                  <p className="font-medium opacity-80">{aiStatus.explanation}</p>
-                               </div>
-                            </div>
-                         )}
-                      </td>
-                   </tr>
-                ))}
+                        </td>
+                     </tr>
+                   );
+                })}
              </tbody>
           </table>
         </div>
@@ -875,9 +915,11 @@ function MasterDataView({ title, sheetName, idColumn, columns }: { title: string
         setData(res.data);
       } else {
         console.warn(`GAS Error for ${sheetName}:`, res.message);
+        alert(`Gagal mengambil data ${sheetName}: ${res.message}`);
       }
     } catch (err) {
       console.error(`Fetch Error for ${sheetName}:`, err);
+      alert(`Terjadi kesalahan koneksi saat memuat ${sheetName}`);
     } finally {
       setLoading(false);
     }
